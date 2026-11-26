@@ -1,7 +1,35 @@
 import type { Player, PracticeDay } from '../domain/types';
 
+function triggerDownload(buffer: ArrayBuffer, filename: string): void {
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function addRowsToSheet(
+  sheet: import('exceljs').Worksheet,
+  rows: Record<string, unknown>[]
+): void {
+  if (rows.length === 0) return;
+  const headers = Object.keys(rows[0]);
+  sheet.addRow(headers);
+  const headerRow = sheet.getRow(1);
+  headerRow.font = { bold: true };
+  for (const row of rows) {
+    sheet.addRow(headers.map((h) => row[h] ?? ''));
+  }
+}
+
 export async function exportDayExcel(day: PracticeDay, players: Player[]): Promise<void> {
-  const XLSX = await import('xlsx');
+  const ExcelJS = (await import('exceljs')).default;
   const playerMap = new Map(players.map((p) => [p.id, p.name]));
 
   const summaryRows = day.completions.map((c) => {
@@ -55,33 +83,37 @@ export async function exportDayExcel(day: PracticeDay, players: Player[]): Promi
       };
     });
 
-  const wb = XLSX.utils.book_new();
-  const wsSummary = XLSX.utils.json_to_sheet(
+  const wb = new ExcelJS.Workbook();
+  const wsSummary = wb.addWorksheet('Day Summary');
+  addRowsToSheet(
+    wsSummary,
     summaryRows.length > 0 ? summaryRows : [{ Info: 'No completed records for this date.' }]
   );
-  const wsBalls = XLSX.utils.json_to_sheet(
+
+  const wsBalls = wb.addWorksheet('Ball by Ball');
+  addRowsToSheet(
+    wsBalls,
     ballRows.length > 0 ? ballRows : [{ Info: 'No balls logged for this date.' }]
   );
 
-  XLSX.utils.book_append_sheet(wb, wsSummary, 'Day Summary');
-  XLSX.utils.book_append_sheet(wb, wsBalls, 'Ball by Ball');
-
   for (const station of day.stations) {
     const stBalls = ballRows.filter((r) => r.Station === `Station ${station.stationNumber}`);
-    const wsStation = XLSX.utils.json_to_sheet(
+    const wsStation = wb.addWorksheet(`Station ${station.stationNumber}`);
+    addRowsToSheet(
+      wsStation,
       stBalls.length > 0 ? stBalls : [{ Info: 'No balls logged at this station.' }]
     );
-    XLSX.utils.book_append_sheet(wb, wsStation, `Station ${station.stationNumber}`);
   }
 
-  XLSX.writeFile(wb, `Batting_Day_${day.practiceDate}.xlsx`);
+  const buffer = await wb.xlsx.writeBuffer();
+  triggerDownload(buffer, `Batting_Day_${day.practiceDate}.xlsx`);
 }
 
 export async function exportPlayerHistoryExcel(
   allDays: Record<string, PracticeDay>,
   players: Player[]
 ): Promise<void> {
-  const XLSX = await import('xlsx');
+  const ExcelJS = (await import('exceljs')).default;
   const playerMap = new Map(players.map((p) => [p.id, p.name]));
 
   const allBalls: Record<string, unknown>[] = [];
@@ -127,19 +159,19 @@ export async function exportPlayerHistoryExcel(
     }
   }
 
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(
-    wb,
-    XLSX.utils.json_to_sheet(
-      trainingRows.length > 0 ? trainingRows : [{ Info: 'No completed history.' }]
-    ),
-    'Training Breakdown'
-  );
-  XLSX.utils.book_append_sheet(
-    wb,
-    XLSX.utils.json_to_sheet(allBalls.length > 0 ? allBalls : [{ Info: 'No ball history.' }]),
-    'Ball Breakdown'
+  const wb = new ExcelJS.Workbook();
+  const wsTraining = wb.addWorksheet('Training Breakdown');
+  addRowsToSheet(
+    wsTraining,
+    trainingRows.length > 0 ? trainingRows : [{ Info: 'No completed history.' }]
   );
 
-  XLSX.writeFile(wb, 'Batting_Player_Report.xlsx');
+  const wsBalls = wb.addWorksheet('Ball Breakdown');
+  addRowsToSheet(
+    wsBalls,
+    allBalls.length > 0 ? allBalls : [{ Info: 'No ball history.' }]
+  );
+
+  const buffer = await wb.xlsx.writeBuffer();
+  triggerDownload(buffer, 'Batting_Player_Report.xlsx');
 }

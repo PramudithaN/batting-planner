@@ -8,7 +8,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          xlsx: ['xlsx'],
+          exceljs: ['exceljs'],
           supabase: ['@supabase/supabase-js'],
         },
       },
