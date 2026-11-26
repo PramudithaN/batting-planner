@@ -1,10 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { LogOut, Wifi, WifiOff } from 'lucide-react';
+import {
+  Activity,
+  BarChart3,
+  CalendarPlus,
+  HelpCircle,
+  LogOut,
+  Moon,
+  Sun,
+  Wifi,
+  WifiOff,
+} from 'lucide-react';
 import { CoachAuthGate } from './components/CoachAuthGate';
 import { DaySetupView } from './components/DaySetupView';
 import { LiveStationsView } from './components/LiveStationsView';
 import { PwaInstallBanner } from './components/PwaInstallBanner';
 import { ReportsView } from './components/ReportsView';
+import { SlcLionCrest } from './components/SlcLionCrest';
+import { UiDingToast, type DingToastItem } from './components/ui/UiDingToast';
 import type {
   BallEvent,
   CoachAccount,
@@ -48,21 +60,108 @@ export function App() {
     return coaches.find((c) => c.id === id) ?? null;
   });
 
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      return localStorage.getItem('slc-theme') === 'dark' ? 'dark' : 'light';
+    } catch {
+      return 'light';
+    }
+  });
+
   const [tab, setTab] = useState<Tab>('setup');
   const [players, setPlayers] = useState<Player[]>(() => loadPlayers());
   const [day, setDay] = useState<PracticeDay>(() => loadDay(getTodayDateString()));
   const [isOnline, setIsOnline] = useState<boolean>(() => navigator.onLine);
-  const [toast, setToast] = useState<{ msg: string; type: 'info' | 'error' } | null>(null);
-  const toastTimer = useRef<number | null>(null);
+  const [toasts, setToasts] = useState<DingToastItem[]>([]);
+  const [dismissedTips, setDismissedTips] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem('slc-guide-dismissed');
+      return raw ? (JSON.parse(raw) as string[]) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [guideDisabled, setGuideDisabled] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('slc-guide-off') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const toastTimers = useRef<Map<string, number>>(new Map());
   const syncChannel = useRef<BroadcastChannel | null>(null);
 
-  const showToast = useCallback((msg: string, type: 'info' | 'error' = 'info') => {
-    setToast({ msg, type });
-    if (toastTimer.current) {
-      window.clearTimeout(toastTimer.current);
+  const dismissToast = useCallback((id: string) => {
+    const timer = toastTimers.current.get(id);
+    if (timer) {
+      window.clearTimeout(timer);
+      toastTimers.current.delete(id);
     }
-    toastTimer.current = window.setTimeout(() => setToast(null), 3200);
+    setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, exiting: true } : t)));
+    window.setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 220);
   }, []);
+
+  const showToast = useCallback(
+    (msg: string, type: 'info' | 'error' = 'info') => {
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      setToasts((prev) => [...prev.slice(-2), { id, msg, type }]);
+      const timer = window.setTimeout(() => {
+        dismissToast(id);
+      }, 3200);
+      toastTimers.current.set(id, timer);
+    },
+    [dismissToast]
+  );
+
+  const isTipVisible = useCallback(
+    (tipId: string) => !guideDisabled && !dismissedTips.includes(tipId),
+    [guideDisabled, dismissedTips]
+  );
+
+  const dismissTip = useCallback((tipId: string) => {
+    setDismissedTips((prev) => {
+      const next = prev.includes(tipId) ? prev : [...prev, tipId];
+      try {
+        localStorage.setItem('slc-guide-dismissed', JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }, []);
+
+  const dismissAllTips = useCallback(() => {
+    setGuideDisabled(true);
+    try {
+      localStorage.setItem('slc-guide-off', '1');
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const resetGuideTips = useCallback(() => {
+    setGuideDisabled(false);
+    setDismissedTips([]);
+    try {
+      localStorage.removeItem('slc-guide-off');
+      localStorage.removeItem('slc-guide-dismissed');
+    } catch {
+      // ignore
+    }
+    showToast('Guide tooltips enabled.');
+  }, []);
+
+  const toggleTheme = () => {
+    const next = theme === 'light' ? 'dark' : 'light';
+    setTheme(next);
+    try {
+      localStorage.setItem('slc-theme', next);
+    } catch {
+      // ignore
+    }
+  };
 
   const broadcastSync = useCallback((practiceDate: string) => {
     syncChannel.current?.postMessage({ type: 'DAY_UPDATED', practiceDate });
@@ -98,7 +197,8 @@ export function App() {
     return () => {
       window.removeEventListener('online', onOnline);
       window.removeEventListener('offline', onOffline);
-      if (toastTimer.current) window.clearTimeout(toastTimer.current);
+      toastTimers.current.forEach((timer) => window.clearTimeout(timer));
+      toastTimers.current.clear();
     };
   }, [showToast]);
 
@@ -156,6 +256,12 @@ export function App() {
       ? day.availablePlayerIds.filter((id) => id !== playerId)
       : [...day.availablePlayerIds, playerId];
     const nextDay = saveDay({ ...day, availablePlayerIds });
+    setDay(nextDay);
+    broadcastSync(nextDay.practiceDate);
+  };
+
+  const handleSetAvailablePlayers = (playerIds: string[]) => {
+    const nextDay = saveDay({ ...day, availablePlayerIds: playerIds });
     setDay(nextDay);
     broadcastSync(nextDay.practiceDate);
   };
@@ -259,87 +365,154 @@ export function App() {
     return <CoachAuthGate coaches={coaches} onSignIn={handleSignIn} />;
   }
 
+  const activeBallsCount = day.balls.filter((b) => !b.isUndone).length;
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
+    <div
+      className={`min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] ${
+        theme === 'dark' ? 'theme-dark dark' : ''
+      }`}
+    >
       <PwaInstallBanner />
 
-      {/* Header */}
-      <header className="border-b border-[#E2E8F0] bg-[#0F294A] text-[#FFFFFF]">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#D97706] bg-[#0F294A] text-sm font-bold text-[#FFFFFF]">
-              BP
-            </div>
-            <div>
-              <h1 className="text-base font-bold leading-tight">Batting Practice</h1>
-              <p className="text-xs text-[#CBD5E1]">Sri Lanka Cricket · High Performance</p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <span
-              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                isOnline ? 'bg-[#16A34A] text-[#FFFFFF]' : 'bg-[#D97706] text-[#FFFFFF]'
-              }`}
-            >
-              {isOnline ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-              {isOnline ? (isSupabaseConfigured ? 'Live Sync' : 'Local Sync') : 'Offline Queue'}
-            </span>
-
-            <span className="rounded-lg bg-[#1E3A5F] px-2.5 py-1 text-xs font-medium text-[#FFFFFF]">
-              {currentCoach.name} ({currentCoach.role})
-            </span>
-
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="inline-flex items-center gap-1 rounded-lg border border-[#475569] px-2.5 py-1 text-xs font-semibold text-[#FFFFFF] hover:bg-[#1E3A5F]"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Switch
-            </button>
-          </div>
+      {/* Top Navbar with Sri Lanka Jersey Accent Strap & Lion Crest */}
+      <header className="sticky top-0 z-30 bg-[var(--bg-header)] text-white shadow-sm">
+        {/* Sri Lanka Jersey Gold & Maroon Accent Strap */}
+        <div className="flex h-1 w-full">
+          <div className="w-1/2 bg-[#881337]" />
+          <div className="w-1/2 bg-[#EAB308]" />
         </div>
 
-        {/* Navigation Tabs */}
-        <nav
-          aria-label="Planner sections"
-          className="mx-auto flex max-w-6xl gap-1 px-4"
-        >
-          {(
-            [
-              ['setup', 'Day setup'],
-              ['live', 'Live stations'],
-              ['reports', 'Reports'],
-            ] as const
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setTab(key)}
-              className={`touch-target border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors ${
-                tab === key
-                  ? 'border-[#D97706] text-[#FFFFFF]'
-                  : 'border-transparent text-[#CBD5E1] hover:text-[#FFFFFF]'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </nav>
+        <div className="border-b border-white/10">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-2.5">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2.5">
+                <SlcLionCrest className="h-9 w-9 shrink-0" />
+                <div className="hidden sm:block">
+                  <h1 className="text-sm font-bold leading-tight tracking-tight text-white">
+                    Sri Lanka Cricket
+                  </h1>
+                  <p className="text-[11px] font-medium text-[#EAB308]">
+                    Batting Practice Planner
+                  </p>
+                </div>
+              </div>
+
+              <nav
+                aria-label="Planner sections"
+                className="flex items-center gap-1 rounded-lg bg-[var(--bg-header-pill)] p-1"
+              >
+                {(
+                  [
+                    {
+                      key: 'setup',
+                      label: 'Day Setup',
+                      icon: CalendarPlus,
+                      badge: day.availablePlayerIds.length,
+                    },
+                    {
+                      key: 'live',
+                      label: 'Live Nets',
+                      icon: Activity,
+                      badge: day.stations.length,
+                    },
+                    {
+                      key: 'reports',
+                      label: 'Reports',
+                      icon: BarChart3,
+                      badge: activeBallsCount,
+                    },
+                  ] as const
+                ).map(({ key, label, icon: Icon, badge }) => {
+                  const active = tab === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setTab(key)}
+                      className={`inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-semibold transition-colors ${
+                        active
+                          ? 'bg-[#2563EB] text-white'
+                          : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      <span>{label}</span>
+                      {badge > 0 && (
+                        <span
+                          className={`tabular-nums rounded px-1.5 py-0.5 text-[10px] font-bold leading-none ${
+                            active ? 'bg-white/20 text-white' : 'bg-white/10 text-slate-300'
+                          }`}
+                        >
+                          {badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span
+                className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold ${
+                  isOnline
+                    ? 'bg-emerald-500/15 text-emerald-300'
+                    : 'bg-amber-500/15 text-amber-300'
+                }`}
+              >
+                {isOnline ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
+                <span className="hidden md:inline">
+                  {isOnline ? (isSupabaseConfigured ? 'Live Sync' : 'Local Sync') : 'Offline'}
+                </span>
+              </span>
+
+              <button
+                type="button"
+                onClick={resetGuideTips}
+                aria-label="Show user guide tooltips"
+                title="Show first-time guide tooltips"
+                className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--bg-header-pill)] text-slate-200 hover:bg-white/10"
+              >
+                <HelpCircle className="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={toggleTheme}
+                aria-label="Toggle light or dark theme"
+                title={theme === 'dark' ? 'Switch to Daylight Mode' : 'Switch to Floodlight Mode'}
+                className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--bg-header-pill)] text-slate-200 hover:bg-white/10"
+              >
+                {theme === 'dark' ? (
+                  <Sun className="h-4 w-4 text-[#EAB308]" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
+              </button>
+
+              <span className="hidden h-8 items-center rounded-md bg-[var(--bg-header-pill)] px-2.5 text-xs font-semibold text-slate-200 sm:inline-flex">
+                {currentCoach.name}
+              </span>
+
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-white/15 bg-[var(--bg-header-pill)] px-2.5 text-xs font-semibold text-slate-200 hover:border-white/30 hover:text-white"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Switch</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </header>
 
-      {/* Toast Notification */}
-      {toast && (
-        <div className="fixed right-4 bottom-4 z-50 rounded-lg border border-[#E2E8F0] bg-[#0F294A] px-4 py-2.5 text-sm font-semibold text-[#FFFFFF] shadow-md">
-          <span className={toast.type === 'error' ? 'text-[#FCA5A5]' : 'text-[#FFFFFF]'}>
-            {toast.msg}
-          </span>
-        </div>
-      )}
+      {/* Ding-style Spring-Physics Toast Stack */}
+      <UiDingToast toasts={toasts} onDismiss={dismissToast} />
 
       {/* Main Content */}
-      <main className="mx-auto max-w-6xl p-4">
+      <main key={tab} className="ui-view-enter mx-auto max-w-7xl p-4 sm:p-5">
         {tab === 'setup' && (
           <DaySetupView
             day={day}
@@ -348,12 +521,16 @@ export function App() {
             onChangeDate={handleChangeDate}
             onAddPlayer={handleAddPlayer}
             onTogglePlayer={handleTogglePlayer}
+            onSetAvailablePlayers={handleSetAvailablePlayers}
             onSaveSession={handleSaveSession}
             onPublishStations={handlePublishStations}
             onEditPublishedStation={handleEditPublishedStation}
             onDeletePublishedStation={handleDeletePublishedStation}
             onGoToLive={() => setTab('live')}
             onToast={showToast}
+            isTipVisible={isTipVisible}
+            onDismissTip={dismissTip}
+            onDismissAllTips={dismissAllTips}
           />
         )}
 
@@ -371,6 +548,9 @@ export function App() {
             onUndoLastBall={handleUndoLastBall}
             onSaveCompletion={handleSaveCompletion}
             onToast={showToast}
+            isTipVisible={isTipVisible}
+            onDismissTip={dismissTip}
+            onDismissAllTips={dismissAllTips}
           />
         )}
 
@@ -383,6 +563,9 @@ export function App() {
             onRefresh={() => setDay(loadDay(day.practiceDate))}
             onClearHistory={handleClearHistory}
             onToast={showToast}
+            isTipVisible={isTipVisible}
+            onDismissTip={dismissTip}
+            onDismissAllTips={dismissAllTips}
           />
         )}
       </main>

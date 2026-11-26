@@ -1,14 +1,19 @@
 import React, { useMemo, useState } from 'react';
 import {
   ArrowLeft,
-  Calendar,
+  ArrowRight,
   CheckCircle2,
+  Crosshair,
+  Eye,
   Lock,
   Plus,
   RefreshCw,
   Undo2,
   Unlock,
+  Zap,
 } from 'lucide-react';
+import { UiDatePicker } from './ui/UiDatePicker';
+import { UiSelect } from './ui/UiSelect';
 import {
   BOWLING_STYLES,
   CONTACT_OUTCOMES,
@@ -27,6 +32,9 @@ import {
   type StationConfig,
 } from '../domain/types';
 import { PitchMapSvg } from './PitchMapSvg';
+import { SlcLionCrest } from './SlcLionCrest';
+import { PlayerAvatar } from './ui/PlayerAvatar';
+import { UiGuideTip } from './ui/UiGuideTip';
 import { WagonWheelSvg } from './WagonWheelSvg';
 
 interface LiveStationsViewProps {
@@ -42,7 +50,28 @@ interface LiveStationsViewProps {
   onUndoLastBall: (stationId: string, playerId: string) => void;
   onSaveCompletion: (completion: StationCompletion) => void;
   onToast: (msg: string, type?: 'info' | 'error') => void;
+  isTipVisible: (id: string) => boolean;
+  onDismissTip: (id: string) => void;
+  onDismissAllTips: () => void;
 }
+
+const OUTCOME_STYLE: Record<string, string> = {
+  Solid: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+  'Not middled': 'border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  'Played and missed': 'border-slate-500/40 bg-slate-500/10 text-[var(--text-secondary)]',
+  Beaten: 'border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-400',
+  Edged: 'border-orange-500/40 bg-orange-500/10 text-orange-600 dark:text-orange-400',
+  Left: 'border-sky-500/40 bg-sky-500/10 text-sky-600 dark:text-sky-400',
+};
+
+const OUTCOME_ACTIVE: Record<string, string> = {
+  Solid: 'border-emerald-600 bg-emerald-600 text-white',
+  'Not middled': 'border-amber-600 bg-amber-600 text-white',
+  'Played and missed': 'border-slate-600 bg-slate-600 text-white',
+  Beaten: 'border-rose-600 bg-rose-600 text-white',
+  Edged: 'border-orange-600 bg-orange-600 text-white',
+  Left: 'border-sky-600 bg-sky-600 text-white',
+};
 
 export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
   day,
@@ -57,6 +86,9 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
   onUndoLastBall,
   onSaveCompletion,
   onToast,
+  isTipVisible,
+  onDismissTip,
+  onDismissAllTips,
 }) => {
   const isViewer = currentCoach.role === 'viewer';
   const [activeStationId, setActiveStationId] = useState<string | null>(null);
@@ -64,6 +96,11 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
   const [showLateModal, setShowLateModal] = useState(false);
   const [lateSelection, setLateSelection] = useState('');
   const [lateManualName, setLateManualName] = useState('');
+
+  const [autoSaveOnOutcome, setAutoSaveOnOutcome] = useState(true);
+  const [wheelMode, setWheelMode] = useState<'mark' | 'live'>('mark');
+  const [shotTab, setShotTab] = useState<keyof typeof SHOT_CATEGORIES>('Front Foot');
+  const [showManualLineLength, setShowManualLineLength] = useState(false);
 
   // Ball inputs (Bowling style stays sticky across balls per UX-04)
   const [bowlingStyle, setBowlingStyle] = useState<string | undefined>(undefined);
@@ -74,7 +111,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
   const [shotY, setShotY] = useState<number | undefined>(undefined);
   const [runs, setRuns] = useState<string | undefined>(undefined);
   const [contactOutcome, setContactOutcome] = useState<string | undefined>(undefined);
-  const [lastSavedText, setLastSavedText] = useState<string>('');
+  const [lastSavedMsg, setLastSavedMsg] = useState<string | null>(null);
 
   // Completion modal
   const [showCompleteModal, setShowCompleteModal] = useState(false);
@@ -138,14 +175,15 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
 
   const handleSelectPlayer = (playerId: string) => {
     setSelectedPlayerId(playerId);
-    setLastSavedText('');
+    setLastSavedMsg(null);
     if (activeStationId && playerId && !isViewer) {
       onAcquireLock(activeStationId, playerId, false);
     }
   };
 
-  const handleSaveBall = () => {
-    if (!activeStation || !activePlayerId || !canScore || !contactOutcome) return;
+  const commitBall = (outcomeOverride?: string) => {
+    const finalOutcome = outcomeOverride ?? contactOutcome;
+    if (!activeStation || !activePlayerId || !canScore || !finalOutcome) return;
 
     const parsed = ballInputSchema.safeParse({
       stationId: activeStation.id,
@@ -157,7 +195,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
       shotX,
       shotY,
       runs,
-      contactOutcome,
+      contactOutcome: finalOutcome,
     });
 
     if (!parsed.success) {
@@ -179,18 +217,18 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
       shotX,
       shotY,
       runs,
-      contactOutcome,
+      contactOutcome: finalOutcome,
       createdAt: new Date().toISOString(),
     };
 
     onLogBall(ball);
-    setLastSavedText(
-      `Last saved · Ball ${ball.ballNumber}: ${contactOutcome}${runs ? ` (${runs})` : ''}${
-        shotType ? ` · ${shotType}` : ''
-      }`
-    );
 
-    // Reset per-ball fields while keeping Bowling style sticky
+    const summary = `Ball #${ball.ballNumber} saved: ${finalOutcome}${
+      runs ? ` · ${runs === 'Dot' ? '0 runs' : `${runs} runs`}` : ''
+    }${shotType ? ` · ${shotType}` : ''}`;
+    setLastSavedMsg(summary);
+    onToast(summary);
+
     setLine(undefined);
     setLength(undefined);
     setShotType(undefined);
@@ -198,6 +236,15 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
     setShotY(undefined);
     setRuns(undefined);
     setContactOutcome(undefined);
+  };
+
+  const handleOutcomeTap = (co: string) => {
+    if (!canScore) return;
+    if (autoSaveOnOutcome) {
+      commitBall(co);
+    } else {
+      setContactOutcome(co);
+    }
   };
 
   const handleSubmitCompletion = (e: React.FormEvent) => {
@@ -246,142 +293,168 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
     setShowLateModal(false);
   };
 
+  const recentBalls = useMemo(() => playerBalls.slice(-6).reverse(), [playerBalls]);
+
+  const batterStats = useMemo(() => {
+    let totalRuns = 0;
+    let fours = 0;
+    let sixes = 0;
+    let solid = 0;
+    for (const b of playerBalls) {
+      const n = Number(b.runs);
+      if (!Number.isNaN(n)) totalRuns += n;
+      if (b.runs === '4') fours++;
+      if (b.runs === '6') sixes++;
+      if (b.contactOutcome === 'Solid') solid++;
+    }
+    const sr = playerBalls.length > 0 ? ((totalRuns / playerBalls.length) * 100).toFixed(1) : '0.0';
+    return {
+      totalRuns,
+      balls: playerBalls.length,
+      fours,
+      sixes,
+      strikeRate: sr,
+      solidPct: playerBalls.length > 0 ? Math.round((solid / playerBalls.length) * 100) : 0,
+    };
+  }, [playerBalls]);
+
   return (
     <div className="space-y-4">
       {/* Top Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#E2E8F0] bg-[#FFFFFF] p-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Calendar className="h-4 w-4 text-[#475569]" />
-          <input
-            type="date"
-            value={day.practiceDate}
-            onChange={(e) => onChangeDate(e.target.value)}
-            className="touch-target rounded-lg border border-[#E2E8F0] px-3 py-1.5 text-sm"
-          />
-          <button
-            type="button"
-            onClick={onRefresh}
-            className="touch-target inline-flex items-center gap-1.5 rounded-lg border border-[#E2E8F0] px-3 py-1.5 text-sm font-semibold text-[#0F294A] hover:bg-[#F8FAFC]"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </button>
-        </div>
-
-        {!isViewer && (
+      {!activeStation && (
+        <div className="ui-card flex flex-wrap items-center justify-between gap-3 p-4">
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowLateModal(true)}
-              className="touch-target inline-flex items-center gap-1.5 rounded-lg border border-[#2563EB] bg-[#FFFFFF] px-3 py-1.5 text-sm font-semibold text-[#2563EB] hover:bg-[#EFF6FF]"
-            >
-              <Plus className="h-4 w-4" />
-              Add late player
-            </button>
-            <button
-              type="button"
-              onClick={onGoToSetup}
-              className="touch-target rounded-lg bg-[#0F294A] px-3.5 py-1.5 text-sm font-semibold text-[#FFFFFF] hover:bg-[#1E3A5F]"
-            >
-              Add stations to this day
+            <UiDatePicker value={day.practiceDate} onChange={onChangeDate} />
+            <button type="button" onClick={onRefresh} className="ui-btn-secondary">
+              <RefreshCw className="h-4 w-4" />
+              <span>Refresh</span>
             </button>
           </div>
-        )}
-      </div>
+
+          {!isViewer && (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowLateModal(true)}
+                className="ui-btn-secondary"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Add Late Player</span>
+              </button>
+              <button type="button" onClick={onGoToSetup} className="ui-btn-primary">
+                <Plus className="h-4 w-4" />
+                <span>Add Stations</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Empty State */}
       {day.stations.length === 0 ? (
-        <div className="rounded-xl border border-[#E2E8F0] bg-[#FFFFFF] p-8 text-center">
-          <p className="text-sm font-medium text-[#475569]">
-            No published stations for this date.
+        <div className="ui-card p-10 text-center">
+          <p className="text-sm font-semibold text-[var(--text-secondary)]">
+            No published stations for {day.practiceDate}.
           </p>
-          <button
-            type="button"
-            onClick={onGoToSetup}
-            className="touch-target mt-4 rounded-lg bg-[#0F294A] px-5 py-2.5 text-sm font-semibold text-[#FFFFFF]"
-          >
-            Go to day setup
+          <button type="button" onClick={onGoToSetup} className="ui-btn-primary mt-4">
+            Go to Day Setup
           </button>
         </div>
       ) : !activeStation ? (
         /* Stations Overview */
-        <div className="space-y-4">
+        <div className="space-y-5">
           {day.sessions.map((sess) => {
             const sessStations = day.stations.filter((s) => s.sessionId === sess.id);
             if (sessStations.length === 0) return null;
             return (
               <div key={sess.id} className="space-y-3">
                 <div className="flex items-center justify-between px-1">
-                  <h3 className="text-sm font-bold text-[#0F294A]">
-                    {sess.name} ({sess.startTime} - {sess.endTime})
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                    {sess.name} ·{' '}
+                    <span className="tabular-nums">
+                      {sess.startTime} - {sess.endTime}
+                    </span>
                   </h3>
-                  <span className="tabular-nums text-xs text-[#475569]">
-                    {availablePlayers.length} available players
+                  <span className="tabular-nums text-xs font-semibold text-[var(--text-muted)]">
+                    {availablePlayers.length} players
                   </span>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {sessStations.map((st) => {
                     const completedCount = day.completions.filter(
                       (c) => c.stationId === st.id
                     ).length;
+                    const ballsCount = day.balls.filter(
+                      (b) => b.stationId === st.id && !b.isUndone
+                    ).length;
                     const stationLocks = day.locks.filter((l) => l.stationId === st.id);
+
                     return (
-                      <div
+                      <button
                         key={st.id}
-                        className="flex flex-col justify-between rounded-xl border border-[#E2E8F0] bg-[#FFFFFF] p-4"
+                        type="button"
+                        onClick={() => handleOpenStation(st.id)}
+                        className="ui-card group flex flex-col justify-between p-4 text-left transition-colors hover:border-[var(--accent-primary)]"
                       >
-                        <div>
+                        <div className="w-full">
                           <div className="flex items-center justify-between">
-                            <span className="text-base font-bold text-[#0F294A]">
+                            <span className="text-base font-bold text-[var(--text-primary)]">
                               Station {st.stationNumber}
                             </span>
-                            <span className="tabular-nums rounded-full bg-[#F1F5F9] px-2.5 py-0.5 text-xs font-semibold text-[#475569]">
-                              {completedCount} completed
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="tabular-nums rounded bg-[var(--accent-primary)]/15 px-2 py-0.5 text-[11px] font-bold text-[var(--accent-primary)]">
+                                {ballsCount} balls
+                              </span>
+                              <span className="tabular-nums rounded bg-[var(--bg-elevated)] px-2 py-0.5 text-[11px] font-semibold text-[var(--text-secondary)]">
+                                {completedCount} done
+                              </span>
+                            </div>
                           </div>
-                          <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
-                            <span className="rounded bg-[#EFF6FF] px-2 py-0.5 font-semibold text-[#2563EB]">
+
+                          <div className="mt-2.5 flex flex-wrap gap-1.5 text-[11px]">
+                            <span className="rounded bg-amber-500/15 px-2 py-0.5 font-semibold text-amber-600 dark:text-amber-400">
                               {st.trainingType === 'Other'
                                 ? st.customTrainingType
                                 : st.trainingType}
                             </span>
-                            <span className="rounded bg-[#F8FAFC] px-2 py-0.5 border border-[#E2E8F0] text-[#0F172A]">
+                            <span className="rounded border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-0.5 font-medium text-[var(--text-secondary)]">
                               {st.netType}
                             </span>
-                            <span className="rounded bg-[#F8FAFC] px-2 py-0.5 border border-[#E2E8F0] text-[#0F172A]">
+                            <span className="rounded border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-0.5 font-medium text-[var(--text-secondary)]">
                               {st.ballType}
                             </span>
-                            <span className="rounded bg-[#F8FAFC] px-2 py-0.5 border border-[#E2E8F0] text-[#0F172A]">
+                            <span className="rounded border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-0.5 font-medium text-[var(--text-secondary)]">
                               {st.bowlingType}
                             </span>
                           </div>
+
                           {st.focus && (
-                            <p className="mt-2 text-xs text-[#475569]">Focus: {st.focus}</p>
+                            <p className="mt-2 text-xs text-[var(--text-muted)]">
+                              Focus: {st.focus}
+                            </p>
                           )}
+
                           {stationLocks.length > 0 && (
-                            <div className="mt-2 flex flex-wrap gap-1.5">
+                            <div className="mt-2.5 flex flex-wrap gap-1">
                               {stationLocks.map((lk) => (
                                 <span
                                   key={`${lk.stationId}-${lk.playerId}`}
-                                  className="inline-flex items-center gap-1 rounded bg-[#FEF3C7] px-2 py-0.5 text-[11px] font-semibold text-[#D97706]"
+                                  className="inline-flex items-center gap-1 rounded bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400"
                                 >
                                   <Lock className="h-3 w-3" />
-                                  Active: {lk.coachName}
+                                  {lk.coachName}
                                 </span>
                               ))}
                             </div>
                           )}
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() => handleOpenStation(st.id)}
-                          className="touch-target mt-4 w-full rounded-lg bg-[#0F294A] px-4 py-2 text-sm font-semibold text-[#FFFFFF] hover:bg-[#1E3A5F]"
-                        >
-                          Open station {st.stationNumber}
-                        </button>
-                      </div>
+                        <div className="mt-4 flex w-full items-center justify-between border-t border-[var(--border-subtle)] pt-3 text-xs font-semibold text-[var(--accent-primary)]">
+                          <span>Open scoring cockpit</span>
+                          <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                        </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -390,48 +463,124 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
           })}
         </div>
       ) : (
-        /* Station Detail / Ball-by-Ball Scoring */
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#E2E8F0] bg-[#FFFFFF] p-3">
-            <button
-              type="button"
-              onClick={() => setActiveStationId(null)}
-              className="touch-target inline-flex items-center gap-1.5 rounded-lg border border-[#E2E8F0] px-3 py-1.5 text-sm font-semibold text-[#0F294A]"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              All stations
-            </button>
-
-            <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
-              <select
-                value={activePlayerId}
-                onChange={(e) => handleSelectPlayer(e.target.value)}
-                className="touch-target min-w-[210px] rounded-lg border border-[#E2E8F0] bg-[#FFFFFF] px-3 py-1.5 text-sm font-semibold text-[#0F294A]"
+        /* SCORING COCKPIT */
+        <div key={activeStation.id} className="ui-view-enter space-y-3">
+          {/* Cockpit Top Bar */}
+          <div className="ui-card flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5">
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => setActiveStationId(null)}
+                className="ui-btn-secondary min-h-[36px] px-3 py-1.5 text-xs"
               >
-                {availablePlayers.map((p) => {
-                  const count = day.balls.filter(
-                    (b) => b.stationId === activeStation.id && b.playerId === p.id && !b.isUndone
-                  ).length;
-                  const done = day.completions.some(
-                    (c) => c.stationId === activeStation.id && c.playerId === p.id
-                  );
-                  const suffix = done ? ' · Completed' : count > 0 ? ` · ${count} balls` : '';
-                  return (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                      {suffix}
-                    </option>
-                  );
-                })}
-              </select>
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span>All Nets</span>
+              </button>
+              <div>
+                <h2 className="text-sm font-bold text-[var(--text-primary)]">
+                  Station {activeStation.stationNumber} · {activeStation.netType}
+                </h2>
+                <p className="text-[11px] text-[var(--text-muted)]">
+                  {activeStation.ballType} · {activeStation.bowlingType}
+                </p>
+              </div>
             </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {!isViewer && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setAutoSaveOnOutcome((v) => !v)}
+                    title="When ON, tapping a Contact Outcome immediately logs the ball"
+                    className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      autoSaveOnOutcome
+                        ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/15 text-[var(--accent-primary)]'
+                        : 'border-[var(--border-strong)] bg-[var(--bg-elevated)] text-[var(--text-muted)]'
+                    }`}
+                  >
+                    <Zap className="h-3.5 w-3.5" />
+                    <span>1-Tap Save: {autoSaveOnOutcome ? 'ON' : 'OFF'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowLateModal(true)}
+                    className="ui-btn-secondary min-h-[36px] px-3 py-1.5 text-xs"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Late Player</span>
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* 1-Tap Horizontal Player Pill Strip */}
+          <div className="relative">
+            <div
+              className={`no-scrollbar flex items-center gap-2 overflow-x-auto pb-1 ${
+                isTipVisible('live-player-strip') ? 'rounded-lg ring-2 ring-[#2563EB] ring-offset-2' : ''
+              }`}
+            >
+              {availablePlayers.map((p) => {
+                const selected = p.id === activePlayerId;
+                const count = day.balls.filter(
+                  (b) => b.stationId === activeStation.id && b.playerId === p.id && !b.isUndone
+                ).length;
+                const done = day.completions.some(
+                  (c) => c.stationId === activeStation.id && c.playerId === p.id
+                );
+
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => {
+                      onDismissTip('live-player-strip');
+                      handleSelectPlayer(p.id);
+                    }}
+                    className={`touch-target flex shrink-0 items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      selected
+                        ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-white'
+                        : 'border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:border-[var(--border-strong)]'
+                    }`}
+                  >
+                    <PlayerAvatar name={p.name} avatarUrl={p.avatarUrl} size="sm" />
+                    <span>{p.name}</span>
+                    {done ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                    ) : count > 0 ? (
+                      <span
+                        className={`tabular-nums rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                          selected
+                            ? 'bg-white/20 text-white'
+                            : 'bg-[var(--bg-elevated)] text-[var(--text-secondary)]'
+                        }`}
+                      >
+                        {count}
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+            <UiGuideTip
+              visible={isTipVisible('live-player-strip')}
+              title="1. Select Batter"
+              description="Tap any player pill here to switch who you are scoring in this net."
+              position="bottom"
+              align="left"
+              onDismiss={() => onDismissTip('live-player-strip')}
+              onDismissAll={onDismissAllTips}
+            />
           </div>
 
           {/* Lock Warning Banner */}
           {isLockedByOther && activeLock && !completion && (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#D97706] bg-[#FFFBEB] p-3 text-sm text-[#92400E]">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs font-semibold text-amber-600 dark:text-amber-400">
               <div className="flex items-center gap-2">
-                <Lock className="h-4 w-4 shrink-0 text-[#D97706]" />
+                <Lock className="h-4 w-4 shrink-0" />
                 <span>
                   Read-only: <strong>{activeLock.coachName}</strong> is currently scoring{' '}
                   <strong>{activePlayer?.name}</strong>.
@@ -441,10 +590,10 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                 <button
                   type="button"
                   onClick={() => onAcquireLock(activeStation.id, activePlayerId, true)}
-                  className="inline-flex items-center gap-1 rounded-lg bg-[#D97706] px-3 py-1.5 text-xs font-semibold text-[#FFFFFF]"
+                  className="ui-btn-primary min-h-[34px] bg-amber-600 hover:bg-amber-700"
                 >
                   <Unlock className="h-3.5 w-3.5" />
-                  Take Over Control
+                  <span>Take Over</span>
                 </button>
               )}
             </div>
@@ -452,60 +601,33 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
 
           {/* Completed Read-Only Summary */}
           {completion ? (
-            <div className="rounded-xl border border-[#16A34A] bg-[#F0FDF4] p-4">
-              <div className="flex items-center gap-2 text-base font-bold text-[#166534]">
-                <CheckCircle2 className="h-5 w-5" />
-                Completed · {activePlayer?.name}
-              </div>
-              <p className="tabular-nums mt-1 text-sm text-[#15803D]">
-                {playerBalls.length} balls · {completion.observingCoach} · {completion.rating}/10
-              </p>
-              {completion.remarks && (
-                <p className="mt-2 text-sm text-[#0F172A]">Remarks: {completion.remarks}</p>
-              )}
-            </div>
-          ) : (
-            /* Ball-by-Ball Logging Card */
-            <div className="space-y-4 rounded-xl border border-[#E2E8F0] bg-[#FFFFFF] p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E2E8F0] pb-3">
-                <div>
-                  <h3 className="text-base font-bold text-[#0F294A]">{activePlayer?.name}</h3>
-                  <p className="tabular-nums text-xs text-[#475569]">
-                    Station {activeStation.stationNumber} ({activeStation.netType}) ·{' '}
-                    {playerBalls.length} logged
-                  </p>
+            <div className="ui-card space-y-4 border-emerald-500/40 bg-emerald-500/5 p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-base font-bold text-[var(--accent-primary)]">
+                  <CheckCircle2 className="h-5 w-5" />
+                  <span>Completed · {activePlayer?.name}</span>
                 </div>
-                <span className="tabular-nums rounded-lg bg-[#0F294A] px-3 py-1 text-xs font-bold text-[#FFFFFF]">
-                  Ball {playerBalls.length + 1}
+                <span className="tabular-nums rounded-md bg-[var(--accent-primary)] px-3 py-1 text-xs font-bold text-white">
+                  {completion.rating}/10 Rating
                 </span>
               </div>
-
-              {/* 1. Bowling Style (Sticky) */}
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-[#475569]">
-                  Bowling style (optional, stays selected)
-                </label>
-                <div className="flex flex-wrap gap-1.5">
-                  {BOWLING_STYLES.map((bs) => (
-                    <button
-                      key={bs}
-                      type="button"
-                      disabled={!canScore}
-                      onClick={() => setBowlingStyle(bowlingStyle === bs ? undefined : bs)}
-                      className={`touch-target rounded-lg border px-3 py-1.5 text-xs font-semibold ${
-                        bowlingStyle === bs
-                          ? 'border-[#2563EB] bg-[#2563EB] text-[#FFFFFF]'
-                          : 'border-[#E2E8F0] bg-[#FFFFFF] text-[#0F172A]'
-                      }`}
-                    >
-                      {bs}
-                    </button>
-                  ))}
-                </div>
+              <p className="tabular-nums text-sm font-medium text-[var(--text-secondary)]">
+                {playerBalls.length} balls logged · Observed by {completion.observingCoach}
+              </p>
+              {completion.remarks && (
+                <p className="ui-card-elevated p-3 text-sm text-[var(--text-primary)]">
+                  {completion.remarks}
+                </p>
+              )}
+              <div className="max-w-md">
+                <WagonWheelSvg balls={playerBalls} />
               </div>
-
-              {/* 2 & 3. Pitch Map + Line & Length */}
-              <div className="grid gap-4 lg:grid-cols-2">
+            </div>
+          ) : (
+            /* 2-Column Scoring Cockpit */
+            <div className="grid gap-4 lg:grid-cols-12">
+              {/* LEFT: Pitch Map + Wagon Wheel */}
+              <div className="ui-card space-y-4 p-4 lg:col-span-5">
                 <PitchMapSvg
                   selectedLine={line}
                   selectedLength={length}
@@ -515,44 +637,47 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                     setLength(lg);
                   }}
                 />
-                <div className="space-y-3">
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-[#475569]">
-                      Line (optional)
-                    </label>
-                    <div className="flex flex-wrap gap-1.5">
+
+                <button
+                  type="button"
+                  onClick={() => setShowManualLineLength((v) => !v)}
+                  className="ui-link text-[var(--text-muted)]"
+                >
+                  {showManualLineLength
+                    ? 'Hide manual Line/Length'
+                    : 'Manual Line/Length selection'}
+                </button>
+
+                {showManualLineLength && (
+                  <div className="ui-card-elevated space-y-2 p-2.5">
+                    <div className="flex flex-wrap gap-1">
                       {LINES.map((ln) => (
                         <button
                           key={ln}
                           type="button"
                           disabled={!canScore}
                           onClick={() => setLine(line === ln ? undefined : ln)}
-                          className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium ${
+                          className={`rounded-md px-2 py-1 text-[11px] font-semibold ${
                             line === ln
-                              ? 'border-[#2563EB] bg-[#2563EB] text-[#FFFFFF]'
-                              : 'border-[#E2E8F0] bg-[#FFFFFF] text-[#0F172A]'
+                              ? 'bg-[var(--accent-primary)] text-white'
+                              : 'bg-[var(--bg-surface)] text-[var(--text-secondary)]'
                           }`}
                         >
                           {ln}
                         </button>
                       ))}
                     </div>
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-[#475569]">
-                      Length (optional)
-                    </label>
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="flex flex-wrap gap-1">
                       {LENGTHS.map((lg) => (
                         <button
                           key={lg}
                           type="button"
                           disabled={!canScore}
                           onClick={() => setLength(length === lg ? undefined : lg)}
-                          className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium ${
+                          className={`rounded-md px-2 py-1 text-[11px] font-semibold ${
                             length === lg
-                              ? 'border-[#2563EB] bg-[#2563EB] text-[#FFFFFF]'
-                              : 'border-[#E2E8F0] bg-[#FFFFFF] text-[#0F172A]'
+                              ? 'bg-[var(--accent-primary)] text-white'
+                              : 'bg-[var(--bg-surface)] text-[var(--text-secondary)]'
                           }`}
                         >
                           {lg}
@@ -560,76 +685,218 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                       ))}
                     </div>
                   </div>
-                </div>
-              </div>
+                )}
 
-              {/* 4. Grouped Shot Type */}
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-[#475569]">
-                  Shot type (optional)
-                </label>
+                {/* Wagon Wheel Mode Switcher */}
                 <div className="space-y-2">
-                  {Object.entries(SHOT_CATEGORIES).map(([cat, shots]) => (
-                    <div key={cat} className="flex flex-wrap items-center gap-1.5">
-                      <span className="w-24 shrink-0 text-[11px] font-bold text-[#475569]">
-                        {cat}
-                      </span>
-                      {shots.map((sh) => (
-                        <button
-                          key={sh}
-                          type="button"
-                          disabled={!canScore}
-                          onClick={() => setShotType(shotType === sh ? undefined : sh)}
-                          className={`rounded-lg border px-2.5 py-1 text-xs font-medium ${
-                            shotType === sh
-                              ? 'border-[#2563EB] bg-[#2563EB] text-[#FFFFFF]'
-                              : 'border-[#E2E8F0] bg-[#FFFFFF] text-[#0F172A]'
-                          }`}
-                        >
-                          {sh}
-                        </button>
-                      ))}
+                  <div className="flex items-center justify-between">
+                    <div className="inline-flex rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-0.5 text-xs font-semibold">
+                      <button
+                        type="button"
+                        onClick={() => setWheelMode('mark')}
+                        className={`inline-flex items-center gap-1 rounded-md px-3 py-1 transition-colors ${
+                          wheelMode === 'mark'
+                            ? 'bg-[var(--accent-primary)] text-white'
+                            : 'text-[var(--text-secondary)]'
+                        }`}
+                      >
+                        <Crosshair className="h-3.5 w-3.5" />
+                        <span>Mark Shot</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setWheelMode('live')}
+                        className={`inline-flex items-center gap-1 rounded-md px-3 py-1 transition-colors ${
+                          wheelMode === 'live'
+                            ? 'bg-[var(--accent-primary)] text-white'
+                            : 'text-[var(--text-secondary)]'
+                        }`}
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        <span>
+                          Live Wheel ({playerBalls.filter((b) => typeof b.shotX === 'number').length})
+                        </span>
+                      </button>
                     </div>
-                  ))}
-                </div>
-              </div>
 
-              {/* 5, 6, 7. Shot Location, Runs & Contact Outcome */}
-              <div className="grid gap-4 lg:grid-cols-2">
-                <div>
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <span className="text-xs font-semibold text-[#475569]">
-                      Shot location (optional)
-                    </span>
-                    {typeof shotX === 'number' && (
+                    {wheelMode === 'mark' && typeof shotX === 'number' && (
                       <button
                         type="button"
                         onClick={() => {
                           setShotX(undefined);
                           setShotY(undefined);
                         }}
-                        className="text-xs font-semibold text-[#DC2626]"
+                        className="ui-link text-rose-500"
                       >
                         Clear mark
                       </button>
                     )}
                   </div>
-                  <WagonWheelSvg
-                    interactive={canScore}
-                    selectedX={shotX}
-                    selectedY={shotY}
-                    onSelectPoint={(x, y) => {
-                      setShotX(x);
-                      setShotY(y);
-                    }}
-                  />
-                </div>
 
+                  {wheelMode === 'mark' ? (
+                    <WagonWheelSvg
+                      interactive={canScore}
+                      selectedX={shotX}
+                      selectedY={shotY}
+                      onSelectPoint={(x, y) => {
+                        setShotX(x);
+                        setShotY(y);
+                      }}
+                    />
+                  ) : (
+                    <WagonWheelSvg balls={playerBalls} />
+                  )}
+                </div>
+              </div>
+
+              {/* RIGHT: Bowling Style, Shot Type, Runs, Contact Outcome & Actions */}
+              <div className="ui-card flex flex-col justify-between space-y-4 p-4 lg:col-span-7">
                 <div className="space-y-4">
+                  {/* Broadcast Cricket Player Stat Card */}
+                  <div className="overflow-hidden rounded-xl border border-[#1E3A8A]/30 shadow-xs">
+                    <div className="flex items-center justify-between bg-[#0B1F4D] px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white">
+                      <span>Live Net Stats · Station {activeStation.stationNumber}</span>
+                      <span className="tabular-nums text-[#FACC15]">
+                        Next: Ball #{playerBalls.length + 1}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 bg-[#1D4ED8] px-3.5 py-2 text-white">
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <SlcLionCrest className="h-7 w-7 shrink-0" />
+                        <div className="min-w-0">
+                          <h3 className="truncate text-sm font-extrabold uppercase tracking-wide">
+                            {activePlayer?.name}
+                          </h3>
+                          {activePlayer?.squads && activePlayer.squads.length > 0 && (
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-100">
+                              {activePlayer.squads.join(' · ')}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <PlayerAvatar
+                        name={activePlayer?.name ?? 'Player'}
+                        avatarUrl={activePlayer?.avatarUrl}
+                        size="lg"
+                        className="border-white/30"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-5 divide-x divide-[var(--border-subtle)] bg-[var(--bg-elevated)] text-center">
+                      <div className="py-2">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                          Runs
+                        </p>
+                        <p className="tabular-nums text-sm font-extrabold text-[var(--text-primary)]">
+                          {batterStats.totalRuns}
+                        </p>
+                      </div>
+                      <div className="py-2">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                          Balls
+                        </p>
+                        <p className="tabular-nums text-sm font-extrabold text-[var(--text-primary)]">
+                          {batterStats.balls}
+                        </p>
+                      </div>
+                      <div className="py-2">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                          S. Rate
+                        </p>
+                        <p className="tabular-nums text-sm font-extrabold text-[var(--text-primary)]">
+                          {batterStats.strikeRate}
+                        </p>
+                      </div>
+                      <div className="py-2">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                          4s / 6s
+                        </p>
+                        <p className="tabular-nums text-sm font-extrabold text-[var(--text-primary)]">
+                          {batterStats.fours}/{batterStats.sixes}
+                        </p>
+                      </div>
+                      <div className="py-2">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                          Solid %
+                        </p>
+                        <p className="tabular-nums text-sm font-extrabold text-[var(--accent-primary)]">
+                          {batterStats.solidPct}%
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sticky Bowling Style */}
                   <div>
-                    <label className="mb-1.5 block text-xs font-semibold text-[#475569]">
-                      Runs (optional)
-                    </label>
+                    <label className="ui-label">Bowling Style (Sticky)</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {BOWLING_STYLES.map((bs) => (
+                        <button
+                          key={bs}
+                          type="button"
+                          disabled={!canScore}
+                          onClick={() => setBowlingStyle(bowlingStyle === bs ? undefined : bs)}
+                          className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                            bowlingStyle === bs
+                              ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-white'
+                              : 'border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[var(--text-primary)]'
+                          }`}
+                        >
+                          {bs}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Categorized Shot Type */}
+                  <div>
+                    <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                      <label className="ui-label mb-0">
+                        Shot Type {shotType ? `· ${shotType}` : '(Optional)'}
+                      </label>
+                      <div className="inline-flex rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-0.5 text-[11px] font-semibold">
+                        {(Object.keys(SHOT_CATEGORIES) as Array<keyof typeof SHOT_CATEGORIES>).map(
+                          (cat) => (
+                            <button
+                              key={cat}
+                              type="button"
+                              onClick={() => setShotTab(cat)}
+                              className={`rounded-md px-2.5 py-1 transition-colors ${
+                                shotTab === cat
+                                  ? 'bg-[var(--bg-surface)] text-[var(--accent-primary)]'
+                                  : 'text-[var(--text-muted)]'
+                              }`}
+                            >
+                              {cat}
+                            </button>
+                          )
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      {SHOT_CATEGORIES[shotTab].map((sh) => (
+                        <button
+                          key={sh}
+                          type="button"
+                          disabled={!canScore}
+                          onClick={() => setShotType(shotType === sh ? undefined : sh)}
+                          className={`touch-target rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                            shotType === sh
+                              ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-white'
+                              : 'border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:border-[var(--border-strong)]'
+                          }`}
+                        >
+                          {sh}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Runs */}
+                  <div>
+                    <label className="ui-label">Runs (Optional)</label>
                     <div className="grid grid-cols-6 gap-1.5">
                       {RUN_OPTIONS.map((r) => (
                         <button
@@ -637,10 +904,10 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                           type="button"
                           disabled={!canScore}
                           onClick={() => setRuns(runs === r ? undefined : r)}
-                          className={`touch-target tabular-nums rounded-lg border text-sm font-bold ${
+                          className={`touch-target tabular-nums rounded-lg border text-sm font-bold transition-colors ${
                             runs === r
-                              ? 'border-[#0F294A] bg-[#0F294A] text-[#FFFFFF]'
-                              : 'border-[#E2E8F0] bg-[#FFFFFF] text-[#0F172A]'
+                              ? 'border-amber-600 bg-amber-600 text-white'
+                              : 'border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:border-amber-500/50'
                           }`}
                         >
                           {r}
@@ -649,118 +916,183 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                     </div>
                   </div>
 
-                  <div>
-                    <label className="mb-1.5 block text-xs font-bold text-[#0F294A]">
-                      Contact outcome (required)
+                  {/* Contact Outcome */}
+                  <div className="relative">
+                    <label className="ui-label">
+                      Contact Outcome {autoSaveOnOutcome ? '· Tap to Log' : '(Required)'}
                     </label>
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                      {CONTACT_OUTCOMES.map((co) => (
-                        <button
-                          key={co}
-                          type="button"
-                          disabled={!canScore}
-                          onClick={() => setContactOutcome(co)}
-                          className={`touch-target rounded-lg border px-3 py-2 text-xs font-semibold ${
-                            contactOutcome === co
-                              ? 'border-[#16A34A] bg-[#16A34A] text-[#FFFFFF]'
-                              : 'border-[#E2E8F0] bg-[#FFFFFF] text-[#0F172A]'
-                          }`}
-                        >
-                          {co}
-                        </button>
-                      ))}
+                    <div
+                      className={`grid grid-cols-2 gap-2 sm:grid-cols-3 ${
+                        !isTipVisible('live-player-strip') && isTipVisible('live-outcome')
+                          ? 'rounded-lg ring-2 ring-[#2563EB] ring-offset-2'
+                          : ''
+                      }`}
+                    >
+                      {CONTACT_OUTCOMES.map((co) => {
+                        const active = !autoSaveOnOutcome && contactOutcome === co;
+                        return (
+                          <button
+                            key={co}
+                            type="button"
+                            disabled={!canScore}
+                            onClick={() => {
+                              onDismissTip('live-outcome');
+                              handleOutcomeTap(co);
+                            }}
+                            className={`touch-target rounded-lg border px-3 py-2 text-xs font-bold transition-colors ${
+                              active
+                                ? OUTCOME_ACTIVE[co]
+                                : OUTCOME_STYLE[co] ??
+                                  'border-[var(--border-subtle)] bg-[var(--bg-elevated)]'
+                            }`}
+                          >
+                            {co}
+                          </button>
+                        );
+                      })}
                     </div>
+                    <UiGuideTip
+                      visible={!isTipVisible('live-player-strip') && isTipVisible('live-outcome')}
+                      title="2. Tap Outcome to Log Ball"
+                      description="With '1-Tap Save: ON', tapping any Contact Outcome immediately logs the delivery and updates the live scorecard."
+                      position="top"
+                      align="left"
+                      actionLabel="Got it"
+                      onDismiss={() => onDismissTip('live-outcome')}
+                      onDismissAll={onDismissAllTips}
+                    />
                   </div>
+
+                  {/* Instant Save Confirmation Banner */}
+                  {lastSavedMsg && (
+                    <div className="ui-view-enter flex items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                      <CheckCircle2 className="h-4 w-4 shrink-0" />
+                      <span>{lastSavedMsg}</span>
+                    </div>
+                  )}
+
+                  {/* Cricket Broadcast Delivery Strip */}
+                  {recentBalls.length > 0 && (
+                    <div className="ui-card-elevated space-y-2 p-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                          Recent Deliveries (Latest First)
+                        </span>
+                        <span className="tabular-nums text-[10px] font-semibold text-[var(--text-muted)]">
+                          {playerBalls.length} total
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {recentBalls.map((b) => {
+                          const isBoundary = b.runs === '4' || b.runs === '6';
+                          const isDot = !b.runs || b.runs === 'Dot';
+                          return (
+                            <div
+                              key={b.id}
+                              className="flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface)] py-1 pr-2.5 pl-1 text-[11px]"
+                            >
+                              <span
+                                className={`tabular-nums flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-extrabold ${
+                                  b.runs === '6'
+                                    ? 'bg-rose-600 text-white'
+                                    : b.runs === '4'
+                                      ? 'bg-amber-500 text-white'
+                                      : isDot
+                                        ? 'bg-slate-500/20 text-[var(--text-secondary)]'
+                                        : 'bg-[#2563EB] text-white'
+                                }`}
+                              >
+                                {b.runs === 'Dot' ? '0' : b.runs ?? '·'}
+                              </span>
+                              <div className="leading-tight">
+                                <span className="font-bold text-[var(--text-primary)]">
+                                  #{b.ballNumber} {b.contactOutcome}
+                                </span>
+                                {b.shotType && (
+                                  <span className="ml-1 text-[10px] text-[var(--text-muted)]">
+                                    · {b.shotType}
+                                  </span>
+                                )}
+                                {isBoundary && (
+                                  <span className="ml-1 text-[10px] font-bold text-amber-500">
+                                    ({b.runs})
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
 
-              {lastSavedText && (
-                <p className="rounded-lg bg-[#F8FAFC] px-3 py-2 text-xs font-medium text-[#475569]">
-                  {lastSavedText}
-                </p>
-              )}
+                {/* Action Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border-subtle)] pt-3">
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={!canScore || playerBalls.length === 0}
+                      onClick={() => onUndoLastBall(activeStation.id, activePlayerId)}
+                      className="ui-btn-danger"
+                    >
+                      <Undo2 className="h-4 w-4" />
+                      <span>Undo</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!canScore}
+                      onClick={() => setShowCompleteModal(true)}
+                      className="ui-btn-secondary"
+                    >
+                      <CheckCircle2 className="h-4 w-4 text-[var(--accent-primary)]" />
+                      <span>Complete Player</span>
+                    </button>
+                  </div>
 
-              {/* Action Bar */}
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#E2E8F0] pt-3">
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    disabled={!canScore || playerBalls.length === 0}
-                    onClick={() => onUndoLastBall(activeStation.id, activePlayerId)}
-                    className="touch-target inline-flex items-center gap-1.5 rounded-lg border border-[#DC2626] px-3 py-2 text-xs font-semibold text-[#DC2626] disabled:opacity-40"
-                  >
-                    <Undo2 className="h-4 w-4" />
-                    Undo last ball
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!canScore}
-                    onClick={() => setShowCompleteModal(true)}
-                    className="touch-target rounded-lg border border-[#0F294A] px-3 py-2 text-xs font-semibold text-[#0F294A] disabled:opacity-40"
-                  >
-                    Completed
-                  </button>
+                  {!autoSaveOnOutcome && (
+                    <button
+                      type="button"
+                      disabled={!canScore || !contactOutcome}
+                      onClick={() => commitBall()}
+                      className="ui-btn-primary px-5"
+                    >
+                      <span>Save & Next Ball</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
-
-                <button
-                  type="button"
-                  disabled={!canScore || !contactOutcome}
-                  onClick={handleSaveBall}
-                  className="touch-target rounded-lg bg-[#2563EB] px-6 py-2.5 text-sm font-bold text-[#FFFFFF] hover:bg-[#1D4ED8] disabled:opacity-40"
-                >
-                  Save & next ball
-                </button>
               </div>
             </div>
           )}
-
-          {/* Collapsible Live Wagon Wheel */}
-          <details className="rounded-xl border border-[#E2E8F0] bg-[#FFFFFF] p-4">
-            <summary className="cursor-pointer text-sm font-bold text-[#0F294A]">
-              Wagon wheel ·{' '}
-              {
-                playerBalls.filter(
-                  (b) => typeof b.shotX === 'number' && typeof b.shotY === 'number'
-                ).length
-              }{' '}
-              of {playerBalls.length} balls mapped
-            </summary>
-            <div className="mt-3">
-              <WagonWheelSvg balls={playerBalls} />
-            </div>
-          </details>
         </div>
       )}
 
       {/* Add Late Player Modal */}
       {showLateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <form
             onSubmit={handleSubmitLatePlayer}
-            className="w-full max-w-md space-y-4 rounded-xl border border-[#E2E8F0] bg-[#FFFFFF] p-5"
+            className="ui-card w-full max-w-md space-y-4 p-5 shadow-xl"
           >
-            <h3 className="text-base font-bold text-[#0F294A]">Add late player</h3>
-            <select
+            <h3 className="text-base font-bold text-[var(--text-primary)]">Add Late Player</h3>
+            <UiSelect
               value={lateSelection}
-              onChange={(e) => setLateSelection(e.target.value)}
-              className="touch-target w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
-            >
-              <option value="">Select from pool...</option>
-              {unselectedPlayers.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-              <option value="__manual__">Add a name manually</option>
-            </select>
+              onChange={setLateSelection}
+              placeholder="Select from squad pool..."
+              options={[
+                ...unselectedPlayers.map((p) => ({ value: p.id, label: p.name })),
+                { value: '__manual__', label: 'Add a name manually' },
+              ]}
+            />
 
             {lateSelection === '__manual__' && (
               <input
                 type="text"
                 value={lateManualName}
                 onChange={(e) => setLateManualName(e.target.value)}
-                placeholder="Player name"
-                className="touch-target w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
+                placeholder="Player full name"
+                className="ui-input"
               />
             )}
 
@@ -768,15 +1100,12 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
               <button
                 type="button"
                 onClick={() => setShowLateModal(false)}
-                className="touch-target rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-semibold text-[#475569]"
+                className="ui-btn-secondary"
               >
                 Cancel
               </button>
-              <button
-                type="submit"
-                className="touch-target rounded-lg bg-[#0F294A] px-4 py-2 text-sm font-semibold text-[#FFFFFF]"
-              >
-                Add to today's players
+              <button type="submit" className="ui-btn-primary">
+                Add to Today
               </button>
             </div>
           </form>
@@ -785,36 +1114,30 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
 
       {/* Complete Player Modal */}
       {showCompleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <form
             onSubmit={handleSubmitCompletion}
-            className="w-full max-w-md space-y-4 rounded-xl border border-[#E2E8F0] bg-[#FFFFFF] p-5"
+            className="ui-card w-full max-w-md space-y-4 p-5 shadow-xl"
           >
             <div>
-              <h3 className="text-base font-bold text-[#0F294A]">
+              <h3 className="text-base font-bold text-[var(--text-primary)]">
                 Complete {activePlayer?.name}
               </h3>
-              <p className="tabular-nums text-xs text-[#475569]">
-                {playerBalls.length} balls to save.
+              <p className="tabular-nums text-xs text-[var(--text-muted)]">
+                {playerBalls.length} balls logged in this net.
               </p>
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-semibold text-[#475569]">
-                Observing coach
-              </label>
-              <select
+              <label className="ui-label">Observing Coach</label>
+              <UiSelect
                 value={observingCoach}
-                onChange={(e) => setObservingCoach(e.target.value)}
-                className="touch-target w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
-              >
-                {DEFAULT_COACHES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-                <option value="Other">Other</option>
-              </select>
+                onChange={setObservingCoach}
+                options={[
+                  ...DEFAULT_COACHES.map((c) => ({ value: c, label: c })),
+                  { value: 'Other', label: 'Other' },
+                ]}
+              />
             </div>
 
             {observingCoach === 'Other' && (
@@ -823,24 +1146,22 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                 value={customCoachName}
                 onChange={(e) => setCustomCoachName(e.target.value)}
                 placeholder="Coach name"
-                className="touch-target w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
+                className="ui-input"
               />
             )}
 
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-[#475569]">
-                Coach's rating out of 10
-              </label>
+              <label className="ui-label">Coach Rating (0-10)</label>
               <div className="grid grid-cols-6 gap-1.5">
                 {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
                   <button
                     key={num}
                     type="button"
                     onClick={() => setRating(num)}
-                    className={`tabular-nums rounded-lg border py-2 text-xs font-bold ${
+                    className={`tabular-nums rounded-lg border py-2 text-xs font-bold transition-colors ${
                       rating === num
-                        ? 'border-[#0F294A] bg-[#0F294A] text-[#FFFFFF]'
-                        : 'border-[#E2E8F0] bg-[#FFFFFF] text-[#0F172A]'
+                        ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-white'
+                        : 'border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[var(--text-primary)]'
                     }`}
                   >
                     {num}
@@ -850,14 +1171,13 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-semibold text-[#475569]">
-                Remarks (optional)
-              </label>
+              <label className="ui-label">Remarks (Optional)</label>
               <textarea
                 rows={2}
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
-                className="w-full rounded-lg border border-[#E2E8F0] p-2.5 text-sm"
+                placeholder="Key technical observations..."
+                className="ui-textarea"
               />
             </div>
 
@@ -865,15 +1185,12 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
               <button
                 type="button"
                 onClick={() => setShowCompleteModal(false)}
-                className="touch-target rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-semibold text-[#475569]"
+                className="ui-btn-secondary"
               >
                 Cancel
               </button>
-              <button
-                type="submit"
-                className="touch-target rounded-lg bg-[#16A34A] px-4 py-2 text-sm font-semibold text-[#FFFFFF]"
-              >
-                Save completion
+              <button type="submit" className="ui-btn-primary">
+                Save Completion
               </button>
             </div>
           </form>

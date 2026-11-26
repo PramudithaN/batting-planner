@@ -107,13 +107,13 @@ export const DEFAULT_COACHES = [
 ] as const;
 
 export const WAGON_RUN_COLORS: Record<string, string> = {
-  Dot: '#64748B',
-  '1': '#2563EB',
-  '2': '#0D9488',
-  '3': '#7C3AED',
-  '4': '#D97706',
-  '6': '#DC2626',
-  Unrecorded: '#94A3B8',
+  Dot: '#94A3B8',
+  '1': '#0EA5E9',
+  '2': '#10B981',
+  '3': '#8B5CF6',
+  '4': '#F59E0B',
+  '6': '#F43F5E',
+  Unrecorded: '#CBD5E1',
 };
 
 export type UserRole = 'master' | 'coach' | 'viewer';
@@ -129,6 +129,7 @@ export interface Player {
   id: string;
   name: string;
   squads: string[];
+  avatarUrl?: string;
   isCustom?: boolean;
 }
 

@@ -1,5 +1,15 @@
 import React, { useMemo, useState } from 'react';
-import { Calendar, Clock, Edit3, Plus, Search, Trash2, Users } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Clock,
+  Edit3,
+  Plus,
+  Search,
+  Trash2,
+  Users,
+} from 'lucide-react';
 import { PLAYER_POOL_SOURCES } from '../domain/roster';
 import {
   BALL_TYPES,
@@ -12,6 +22,12 @@ import {
   type SessionSlot,
   type StationConfig,
 } from '../domain/types';
+import { PlayerAvatar } from './ui/PlayerAvatar';
+import { UiConfirmModal } from './ui/UiConfirmModal';
+import { UiDatePicker } from './ui/UiDatePicker';
+import { UiGuideTip } from './ui/UiGuideTip';
+import { UiSelect } from './ui/UiSelect';
+import { UiTimePicker } from './ui/UiTimePicker';
 
 interface DaySetupViewProps {
   day: PracticeDay;
@@ -20,12 +36,16 @@ interface DaySetupViewProps {
   onChangeDate: (date: string) => void;
   onAddPlayer: (name: string) => Player | null;
   onTogglePlayer: (playerId: string) => void;
+  onSetAvailablePlayers: (playerIds: string[]) => void;
   onSaveSession: (session: SessionSlot) => void;
   onPublishStations: (stations: StationConfig[]) => void;
   onEditPublishedStation: (station: StationConfig) => void;
   onDeletePublishedStation: (stationId: string) => void;
   onGoToLive: () => void;
   onToast: (msg: string, type?: 'info' | 'error') => void;
+  isTipVisible: (id: string) => boolean;
+  onDismissTip: (id: string) => void;
+  onDismissAllTips: () => void;
 }
 
 interface DraftStation {
@@ -39,6 +59,37 @@ interface DraftStation {
   focus: string;
 }
 
+const STATION_PRESETS = [
+  {
+    label: 'Pace Net',
+    trainingType: 'Random',
+    netType: 'Outdoor net',
+    ballType: 'White New Ball',
+    bowlingType: 'National Bowlers',
+  },
+  {
+    label: 'Spin Net',
+    trainingType: 'Block',
+    netType: 'Outdoor net',
+    ballType: 'White Semi Ball',
+    bowlingType: 'Net Bowlers',
+  },
+  {
+    label: 'Throwdown',
+    trainingType: 'Block',
+    netType: 'Indoor',
+    ballType: 'White Old Ball',
+    bowlingType: 'Throwdown',
+  },
+  {
+    label: 'Center Wicket',
+    trainingType: 'Situation',
+    netType: 'Center wicket',
+    ballType: 'Red New Ball',
+    bowlingType: 'National Bowlers',
+  },
+] as const;
+
 export const DaySetupView: React.FC<DaySetupViewProps> = ({
   day,
   players,
@@ -46,21 +97,28 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
   onChangeDate,
   onAddPlayer,
   onTogglePlayer,
+  onSetAvailablePlayers,
   onSaveSession,
   onPublishStations,
   onEditPublishedStation,
   onDeletePublishedStation,
   onGoToLive,
   onToast,
+  isTipVisible,
+  onDismissTip,
+  onDismissAllTips,
 }) => {
   const isViewer = currentCoach.role === 'viewer';
-  const [step, setStep] = useState<1 | 2>(1);
+  const [section, setSection] = useState<'players' | 'stations'>('players');
   const [search, setSearch] = useState('');
   const [customPlayerName, setCustomPlayerName] = useState('');
+  const [showAddPlayerInput, setShowAddPlayerInput] = useState(false);
+  const [showAddSlot, setShowAddSlot] = useState(false);
   const [newSessionName, setNewSessionName] = useState('');
   const [newSessionStart, setNewSessionStart] = useState('10:45');
   const [newSessionEnd, setNewSessionEnd] = useState('12:00');
   const [editingStationId, setEditingStationId] = useState<string | null>(null);
+  const [pendingDeleteStation, setPendingDeleteStation] = useState<StationConfig | null>(null);
 
   const createDraft = (idx: number): DraftStation => ({
     key: `draft-${Date.now()}-${idx}`,
@@ -80,6 +138,22 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
     return players.filter((p) => !q || p.name.toLowerCase().includes(q));
   }, [players, search]);
 
+  const handleQuickSquad = (squad: string) => {
+    if (isViewer) return;
+    if (squad === 'CLEAR') {
+      onSetAvailablePlayers([]);
+      return;
+    }
+    if (squad === 'ALL') {
+      onSetAvailablePlayers(players.map((p) => p.id));
+      return;
+    }
+    const matching = players.filter((p) => p.squads.includes(squad)).map((p) => p.id);
+    const merged = Array.from(new Set([...day.availablePlayerIds, ...matching]));
+    onSetAvailablePlayers(merged);
+    onToast(`Added ${squad} squad (${matching.length} players).`);
+  };
+
   const handleAddCustomPlayer = (e: React.FormEvent) => {
     e.preventDefault();
     if (isViewer) return;
@@ -91,16 +165,9 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
     const added = onAddPlayer(trimmed);
     if (added) {
       setCustomPlayerName('');
-      onToast(`${added.name} selected for practice.`);
+      setShowAddPlayerInput(false);
+      onToast(`${added.name} added to practice.`);
     }
-  };
-
-  const handleContinue = () => {
-    if (day.availablePlayerIds.length === 0) {
-      onToast('Select at least one available player.', 'error');
-      return;
-    }
-    setStep(2);
   };
 
   const handleAddSession = () => {
@@ -113,11 +180,25 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
       version: 1,
     });
     setNewSessionName('');
-    onToast('Time-slotted session added.');
+    setShowAddSlot(false);
+    onToast('Time slot added.');
+  };
+
+  const handleGoToStations = () => {
+    if (day.availablePlayerIds.length === 0) {
+      onToast('Select at least one player first.', 'error');
+      return;
+    }
+    setSection('stations');
   };
 
   const handlePublish = () => {
     if (isViewer) return;
+    if (day.availablePlayerIds.length === 0) {
+      onToast('Select at least one available player first.', 'error');
+      setSection('players');
+      return;
+    }
     for (const d of drafts) {
       if (d.trainingType === 'Other' && !d.customTrainingType.trim()) {
         onToast('Enter a custom training type when "Other" is selected.', 'error');
@@ -150,518 +231,619 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
 
     onPublishStations(newStations);
     setDrafts([createDraft(1)]);
-    setStep(1);
     onGoToLive();
   };
 
-  if (step === 1) {
-    return (
-      <div className="space-y-5">
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#E2E8F0] bg-[#FFFFFF] p-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#2563EB]">
-              Step 1 of 2
-            </p>
-            <h2 className="text-lg font-bold text-[#0F294A]">Plan batting practice</h2>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <label className="flex items-center gap-2 text-sm font-medium text-[#0F172A]">
-              <Calendar className="h-4 w-4 text-[#475569]" />
-              <input
-                type="date"
-                value={day.practiceDate}
-                onChange={(e) => onChangeDate(e.target.value)}
-                className="touch-target rounded-lg border border-[#E2E8F0] bg-[#FFFFFF] px-3 py-1.5 text-sm"
-              />
-            </label>
+  const updateDraft = (key: string, patch: Partial<DraftStation>) => {
+    setDrafts((prev) => prev.map((x) => (x.key === key ? { ...x, ...patch } : x)));
+  };
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-4">
+      {/* Clean Header + Guided Step Switcher */}
+      <div className="ui-card flex flex-wrap items-center justify-between gap-3 p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <UiDatePicker value={day.practiceDate} onChange={onChangeDate} />
+
+          <div className="inline-flex rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-1 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => setSection('players')}
+              className={`rounded-md px-3 py-1.5 transition-colors ${
+                section === 'players'
+                  ? 'bg-[var(--accent-primary)] text-white'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              1. Players & Schedule ({day.availablePlayerIds.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setSection('stations')}
+              className={`rounded-md px-3 py-1.5 transition-colors ${
+                section === 'stations'
+                  ? 'bg-[var(--accent-primary)] text-white'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              2. Net Stations ({day.stations.length})
+            </button>
           </div>
         </div>
 
-        {/* Time-Slotted Sessions */}
-        <div className="rounded-xl border border-[#E2E8F0] bg-[#FFFFFF] p-4">
-          <div className="mb-3 flex items-center gap-2 text-sm font-bold text-[#0F294A]">
-            <Clock className="h-4 w-4 text-[#2563EB]" />
-            <span>Practice Time Slots</span>
+        {day.stations.length > 0 && (
+          <button type="button" onClick={onGoToLive} className="ui-btn-primary">
+            <span>Go to Live Nets ({day.stations.length})</span>
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+      {section === 'players' ? (
+        <div key="players-step" className="ui-view-enter space-y-4">
+          {/* Compact Time Slots Card */}
+          <div className="ui-card p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 text-sm font-bold text-[var(--text-primary)]">
+                  <Clock className="h-4 w-4 text-[var(--accent-primary)]" />
+                  Time Slots:
+                </span>
+                {day.sessions.map((s) => (
+                  <span
+                    key={s.id}
+                    className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2.5 py-1 text-xs font-medium text-[var(--text-primary)]"
+                  >
+                    <strong>{s.name}</strong> ·{' '}
+                    <span className="tabular-nums text-[var(--text-muted)]">
+                      {s.startTime}–{s.endTime}
+                    </span>
+                  </span>
+                ))}
+              </div>
+
+              {!isViewer && (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onDismissTip('setup-slots');
+                      setShowAddSlot((v) => !v);
+                    }}
+                    className={`ui-btn-secondary min-h-[34px] px-3 py-1 text-xs ${
+                      isTipVisible('setup-slots') ? 'ring-2 ring-[#2563EB] ring-offset-2' : ''
+                    }`}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>{showAddSlot ? 'Close' : 'Add Slot'}</span>
+                  </button>
+                  <UiGuideTip
+                    visible={isTipVisible('setup-slots')}
+                    title="1. Add Time Slots"
+                    description="Click '+ Add Slot' here if you want to add morning/afternoon practice sessions."
+                    position="bottom"
+                    align="right"
+                    onDismiss={() => onDismissTip('setup-slots')}
+                    onDismissAll={onDismissAllTips}
+                  />
+                </div>
+              )}
+            </div>
+
+            {showAddSlot && !isViewer && (
+              <div className="mt-3 grid gap-2 border-t border-[var(--border-subtle)] pt-3 sm:grid-cols-12">
+                <input
+                  type="text"
+                  placeholder="Slot name (e.g. Afternoon Spin)"
+                  value={newSessionName}
+                  onChange={(e) => setNewSessionName(e.target.value)}
+                  className="ui-input sm:col-span-5"
+                />
+                <UiTimePicker
+                  value={newSessionStart}
+                  onChange={setNewSessionStart}
+                  className="sm:col-span-3"
+                />
+                <UiTimePicker
+                  value={newSessionEnd}
+                  onChange={setNewSessionEnd}
+                  className="sm:col-span-3"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddSession}
+                  className="ui-btn-primary sm:col-span-1"
+                >
+                  Save
+                </button>
+              </div>
+            )}
           </div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {day.sessions.map((s) => (
-              <div
-                key={s.id}
-                className="flex items-center justify-between rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-sm"
-              >
-                <span className="font-semibold text-[#0F294A]">{s.name}</span>
-                <span className="tabular-nums text-xs font-medium text-[#475569]">
-                  {s.startTime} - {s.endTime}
+
+          {/* Spacious Player Selection Card */}
+          <div className="ui-card space-y-4 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-[var(--accent-primary)]" />
+                <h3 className="text-sm font-bold text-[var(--text-primary)]">
+                  Select Available Players
+                </h3>
+                <span className="tabular-nums rounded-md bg-[var(--accent-primary)]/15 px-2 py-0.5 text-xs font-bold text-[var(--accent-primary)]">
+                  {day.availablePlayerIds.length} selected
                 </span>
               </div>
-            ))}
-          </div>
 
-          {!isViewer && (
-            <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[#E2E8F0] pt-3">
-              <input
-                type="text"
-                placeholder="New slot name (e.g. Spin Session)"
-                value={newSessionName}
-                onChange={(e) => setNewSessionName(e.target.value)}
-                className="touch-target min-w-[200px] flex-1 rounded-lg border border-[#E2E8F0] px-3 py-1.5 text-sm"
-              />
-              <input
-                type="time"
-                value={newSessionStart}
-                onChange={(e) => setNewSessionStart(e.target.value)}
-                className="touch-target tabular-nums rounded-lg border border-[#E2E8F0] px-2.5 py-1.5 text-sm"
-              />
-              <input
-                type="time"
-                value={newSessionEnd}
-                onChange={(e) => setNewSessionEnd(e.target.value)}
-                className="touch-target tabular-nums rounded-lg border border-[#E2E8F0] px-2.5 py-1.5 text-sm"
-              />
-              <button
-                type="button"
-                onClick={handleAddSession}
-                className="touch-target inline-flex items-center gap-1.5 rounded-lg border border-[#2563EB] bg-[#FFFFFF] px-3 py-1.5 text-sm font-semibold text-[#2563EB] hover:bg-[#EFF6FF]"
+              {!isViewer && (
+                <div className="relative flex flex-wrap items-center gap-1.5">
+                  {(['ODI', 'T20I', 'Test', 'Sri Lanka A', 'ALL', 'CLEAR'] as const).map((sq) => (
+                    <button
+                      key={sq}
+                      type="button"
+                      onClick={() => {
+                        onDismissTip('setup-players');
+                        handleQuickSquad(sq);
+                      }}
+                      className={`${
+                        sq === 'CLEAR'
+                          ? 'ui-btn-danger min-h-[32px] px-2.5 py-1 text-xs'
+                          : 'ui-btn-secondary min-h-[32px] px-2.5 py-1 text-xs'
+                      } ${
+                        !isTipVisible('setup-slots') && isTipVisible('setup-players') && sq === 'ODI'
+                          ? 'ring-2 ring-[#2563EB] ring-offset-2'
+                          : ''
+                      }`}
+                    >
+                      {sq === 'ALL' ? 'All' : sq === 'CLEAR' ? 'Clear' : `+ ${sq}`}
+                    </button>
+                  ))}
+                  <UiGuideTip
+                    visible={!isTipVisible('setup-slots') && isTipVisible('setup-players')}
+                    title="2. Select Players"
+                    description="Tap a squad button (+ ODI, + T20I, + Test) or individual players below to mark who is available."
+                    position="bottom"
+                    align="right"
+                    onDismiss={() => onDismissTip('setup-players')}
+                    onDismissAll={onDismissAllTips}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative flex-1 min-w-[220px]">
+                <Search className="pointer-events-none absolute top-3 left-3 h-4 w-4 text-[var(--text-muted)]" />
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search squad by name..."
+                  className="ui-input pl-9"
+                />
+              </div>
+
+              {!isViewer && !showAddPlayerInput && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddPlayerInput(true)}
+                  className="ui-btn-secondary"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Add Guest Player</span>
+                </button>
+              )}
+            </div>
+
+            {showAddPlayerInput && !isViewer && (
+              <form
+                onSubmit={handleAddCustomPlayer}
+                className="flex items-center gap-2 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-2.5"
               >
-                <Plus className="h-4 w-4" />
-                Add time slot
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Available Players */}
-        <div className="rounded-xl border border-[#E2E8F0] bg-[#FFFFFF] p-4">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-[#2563EB]" />
-              <h3 className="text-sm font-bold text-[#0F294A]">Available players</h3>
-            </div>
-            <span className="tabular-nums rounded-full bg-[#EFF6FF] px-3 py-1 text-xs font-bold text-[#2563EB]">
-              {day.availablePlayerIds.length} selected
-            </span>
-          </div>
-
-          <div className="mb-3 grid gap-2 sm:grid-cols-2">
-            <div className="relative">
-              <Search className="pointer-events-none absolute top-3 left-3 h-4 w-4 text-[#475569]" />
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search the player pool"
-                className="touch-target w-full rounded-lg border border-[#E2E8F0] py-2 pr-3 pl-9 text-sm"
-              />
-            </div>
-
-            {!isViewer && (
-              <form onSubmit={handleAddCustomPlayer} className="flex gap-2">
                 <input
                   type="text"
                   value={customPlayerName}
                   onChange={(e) => setCustomPlayerName(e.target.value)}
-                  placeholder="Additional player name"
-                  className="touch-target flex-1 rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
+                  placeholder="Enter player full name..."
+                  className="ui-input flex-1"
                 />
+                <button type="submit" className="ui-btn-primary">
+                  Add
+                </button>
                 <button
-                  type="submit"
-                  className="touch-target rounded-lg border border-[#0F294A] bg-[#0F294A] px-4 py-2 text-sm font-semibold text-[#FFFFFF] hover:bg-[#1E3A5F]"
+                  type="button"
+                  onClick={() => setShowAddPlayerInput(false)}
+                  className="ui-btn-secondary"
                 >
-                  Add player
+                  Cancel
                 </button>
               </form>
             )}
-          </div>
 
-          <div className="grid max-h-[340px] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredPlayers.map((p) => {
-              const checked = day.availablePlayerIds.includes(p.id);
-              return (
-                <label
-                  key={p.id}
-                  className={`flex cursor-pointer items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-sm transition-colors ${
-                    checked
-                      ? 'border-[#2563EB] bg-[#EFF6FF]'
-                      : 'border-[#E2E8F0] bg-[#FFFFFF] hover:bg-[#F8FAFC]'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <input
-                      type="checkbox"
-                      disabled={isViewer}
-                      checked={checked}
-                      onChange={() => onTogglePlayer(p.id)}
-                      className="h-4 w-4 accent-[#2563EB]"
-                    />
-                    <span className="font-medium text-[#0F172A]">{p.name}</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {p.isCustom && (
-                      <span className="rounded bg-[#FEF3C7] px-1.5 py-0.5 text-[10px] font-semibold text-[#D97706]">
-                        Added
-                      </span>
-                    )}
-                    {p.squads.map((sq) => (
+            <div className="grid max-h-[360px] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 md:grid-cols-3">
+              {filteredPlayers.map((p) => {
+                const checked = day.availablePlayerIds.includes(p.id);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    disabled={isViewer}
+                    onClick={() => onTogglePlayer(p.id)}
+                    className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-left text-xs transition-colors ${
+                      checked
+                        ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10'
+                        : 'border-[var(--border-subtle)] bg-[var(--bg-elevated)] hover:border-[var(--border-strong)]'
+                    }`}
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
                       <span
-                        key={sq}
-                        className="rounded bg-[#F1F5F9] px-1.5 py-0.5 text-[10px] font-medium text-[#475569]"
+                        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                          checked
+                            ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-white'
+                            : 'border-[var(--border-strong)] bg-[var(--bg-surface)]'
+                        }`}
                       >
-                        {sq}
+                        {checked && <Check className="h-3 w-3 stroke-[3]" />}
                       </span>
-                    ))}
-                  </div>
-                </label>
-              );
-            })}
-          </div>
-
-          <details className="mt-4 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-3 text-xs text-[#475569]">
-            <summary className="cursor-pointer font-semibold text-[#0F294A]">
-              Player pool sources
-            </summary>
-            <ul className="mt-2 list-disc space-y-1 pl-5">
-              {PLAYER_POOL_SOURCES.map((src) => (
-                <li key={src}>{src}</li>
-              ))}
-            </ul>
-          </details>
-        </div>
-
-        <div className="flex justify-end">
-          <button
-            type="button"
-            disabled={isViewer}
-            onClick={handleContinue}
-            className="touch-target rounded-lg bg-[#0F294A] px-6 py-2.5 text-sm font-semibold text-[#FFFFFF] hover:bg-[#1E3A5F] disabled:opacity-50"
-          >
-            Continue to stations
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#E2E8F0] bg-[#FFFFFF] p-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#2563EB]">
-            Step 2 of 2
-          </p>
-          <h2 className="text-lg font-bold text-[#0F294A]">
-            {day.stations.length > 0 ? 'Add to the day plan' : 'Create stations'}
-          </h2>
-        </div>
-        <button
-          type="button"
-          onClick={() => setStep(1)}
-          className="touch-target rounded-lg border border-[#E2E8F0] bg-[#FFFFFF] px-4 py-2 text-sm font-semibold text-[#0F294A] hover:bg-[#F8FAFC]"
-        >
-          Back to day setup
-        </button>
-      </div>
-
-      {/* Published stations summary with inline edit */}
-      {day.stations.length > 0 && (
-        <div className="rounded-xl border border-[#E2E8F0] bg-[#FFFFFF] p-4">
-          <h3 className="mb-3 text-sm font-bold text-[#0F294A]">
-            Published stations ({day.stations.length})
-          </h3>
-          <div className="space-y-2">
-            {day.stations.map((st) => {
-              const isEditing = editingStationId === st.id;
-              return (
-                <div
-                  key={st.id}
-                  className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-3 text-sm"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <span className="font-bold text-[#0F294A]">
-                        Station {st.stationNumber}
-                      </span>{' '}
-                      <span className="text-xs text-[#475569]">
-                        ({st.sessionName} · {st.startTime}-{st.endTime})
+                      <PlayerAvatar name={p.name} avatarUrl={p.avatarUrl} size="sm" />
+                      <span className="truncate font-semibold text-[var(--text-primary)]">
+                        {p.name}
                       </span>
-                      <div className="mt-1 flex flex-wrap gap-1.5 text-xs">
-                        <span className="rounded bg-[#FFFFFF] px-2 py-0.5 font-medium text-[#0F172A] border border-[#E2E8F0]">
-                          {st.trainingType === 'Other' ? st.customTrainingType : st.trainingType}
-                        </span>
-                        <span className="rounded bg-[#FFFFFF] px-2 py-0.5 font-medium text-[#0F172A] border border-[#E2E8F0]">
-                          {st.netType}
-                        </span>
-                        <span className="rounded bg-[#FFFFFF] px-2 py-0.5 font-medium text-[#0F172A] border border-[#E2E8F0]">
-                          {st.ballType}
-                        </span>
-                        <span className="rounded bg-[#FFFFFF] px-2 py-0.5 font-medium text-[#0F172A] border border-[#E2E8F0]">
-                          {st.bowlingType}
-                        </span>
-                      </div>
                     </div>
-                    {!isViewer && (
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setEditingStationId(isEditing ? null : st.id)}
-                          className="inline-flex items-center gap-1 rounded border border-[#E2E8F0] bg-[#FFFFFF] px-2.5 py-1 text-xs font-semibold text-[#0F294A]"
-                        >
-                          <Edit3 className="h-3.5 w-3.5" />
-                          {isEditing ? 'Close' : 'Edit'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onDeletePublishedStation(st.id)}
-                          className="inline-flex items-center gap-1 rounded border border-[#DC2626] bg-[#FFFFFF] px-2.5 py-1 text-xs font-semibold text-[#DC2626]"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          Delete
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {isEditing && (
-                    <div className="mt-3 grid gap-2 border-t border-[#E2E8F0] pt-3 sm:grid-cols-3">
-                      <select
-                        value={st.netType}
-                        onChange={(e) =>
-                          onEditPublishedStation({ ...st, netType: e.target.value })
-                        }
-                        className="rounded border border-[#E2E8F0] bg-[#FFFFFF] px-2 py-1.5 text-xs"
-                      >
-                        {NET_TYPES.map((n) => (
-                          <option key={n} value={n}>
-                            {n}
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        value={st.ballType}
-                        onChange={(e) =>
-                          onEditPublishedStation({ ...st, ballType: e.target.value })
-                        }
-                        className="rounded border border-[#E2E8F0] bg-[#FFFFFF] px-2 py-1.5 text-xs"
-                      >
-                        {BALL_TYPES.map((b) => (
-                          <option key={b} value={b}>
-                            {b}
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        value={st.bowlingType}
-                        onChange={(e) =>
-                          onEditPublishedStation({ ...st, bowlingType: e.target.value })
-                        }
-                        className="rounded border border-[#E2E8F0] bg-[#FFFFFF] px-2 py-1.5 text-xs"
-                      >
-                        {BOWLING_TYPES.map((bw) => (
-                          <option key={bw} value={bw}>
-                            {bw}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* New Station Builder Cards */}
-      <div className="space-y-4">
-        {drafts.map((d, idx) => (
-          <div
-            key={d.key}
-            className="rounded-xl border border-[#E2E8F0] bg-[#FFFFFF] p-4 space-y-3"
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-[#0F294A]">
-                Station {day.stations.length + idx + 1}
-              </h3>
-              {drafts.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => setDrafts((prev) => prev.filter((x) => x.key !== d.key))}
-                  className="text-xs font-semibold text-[#DC2626] hover:underline"
-                >
-                  Remove station
-                </button>
-              )}
+                    <span className="shrink-0 text-[10px] font-medium text-[var(--text-muted)]">
+                      {p.isCustom ? 'Added' : p.squads[0] ?? ''}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-[#475569]">
-                  Session & Time Slot
-                </label>
-                <select
-                  value={d.sessionId}
-                  onChange={(e) =>
-                    setDrafts((prev) =>
-                      prev.map((x) => (x.key === d.key ? { ...x, sessionId: e.target.value } : x))
-                    )
-                  }
-                  className="touch-target w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
-                >
-                  {day.sessions.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} ({s.startTime} - {s.endTime})
-                    </option>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border-subtle)] pt-3">
+              <details className="text-[11px] text-[var(--text-muted)]">
+                <summary className="cursor-pointer font-semibold text-[var(--text-secondary)]">
+                  Squad pool sources
+                </summary>
+                <ul className="mt-1.5 list-disc space-y-0.5 pl-4">
+                  {PLAYER_POOL_SOURCES.map((src) => (
+                    <li key={src}>{src}</li>
                   ))}
-                </select>
-              </div>
+                </ul>
+              </details>
 
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-[#475569]">
-                  Training type
-                </label>
-                <select
-                  value={d.trainingType}
-                  onChange={(e) =>
-                    setDrafts((prev) =>
-                      prev.map((x) =>
-                        x.key === d.key ? { ...x, trainingType: e.target.value } : x
-                      )
-                    )
-                  }
-                  className="touch-target w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onDismissTip('setup-next-nets');
+                    handleGoToStations();
+                  }}
+                  className={`ui-btn-primary px-6 ${
+                    !isTipVisible('setup-slots') &&
+                    !isTipVisible('setup-players') &&
+                    isTipVisible('setup-next-nets')
+                      ? 'ring-2 ring-[#2563EB] ring-offset-2'
+                      : ''
+                  }`}
                 >
-                  {TRAINING_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {d.trainingType === 'Other' && (
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-[#475569]">
-                    Custom training type
-                  </label>
-                  <input
-                    type="text"
-                    value={d.customTrainingType}
-                    onChange={(e) =>
-                      setDrafts((prev) =>
-                        prev.map((x) =>
-                          x.key === d.key ? { ...x, customTrainingType: e.target.value } : x
-                        )
-                      )
-                    }
-                    placeholder="Specify training type"
-                    className="touch-target w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
-                  />
-                </div>
-              )}
-
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-[#475569]">
-                  Net type
-                </label>
-                <select
-                  value={d.netType}
-                  onChange={(e) =>
-                    setDrafts((prev) =>
-                      prev.map((x) => (x.key === d.key ? { ...x, netType: e.target.value } : x))
-                    )
+                  <span>Next: Configure Nets</span>
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+                <UiGuideTip
+                  visible={
+                    !isTipVisible('setup-slots') &&
+                    !isTipVisible('setup-players') &&
+                    isTipVisible('setup-next-nets')
                   }
-                  className="touch-target w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
-                >
-                  {NET_TYPES.map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-[#475569]">
-                  Ball type
-                </label>
-                <select
-                  value={d.ballType}
-                  onChange={(e) =>
-                    setDrafts((prev) =>
-                      prev.map((x) => (x.key === d.key ? { ...x, ballType: e.target.value } : x))
-                    )
-                  }
-                  className="touch-target w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
-                >
-                  {BALL_TYPES.map((b) => (
-                    <option key={b} value={b}>
-                      {b}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-[#475569]">
-                  Bowling type
-                </label>
-                <select
-                  value={d.bowlingType}
-                  onChange={(e) =>
-                    setDrafts((prev) =>
-                      prev.map((x) =>
-                        x.key === d.key ? { ...x, bowlingType: e.target.value } : x
-                      )
-                    )
-                  }
-                  className="touch-target w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
-                >
-                  {BOWLING_TYPES.map((bw) => (
-                    <option key={bw} value={bw}>
-                      {bw}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="sm:col-span-2 lg:col-span-3">
-                <label className="mb-1 block text-xs font-semibold text-[#475569]">
-                  Specific shot or focus (optional)
-                </label>
-                <input
-                  type="text"
-                  value={d.focus}
-                  onChange={(e) =>
-                    setDrafts((prev) =>
-                      prev.map((x) => (x.key === d.key ? { ...x, focus: e.target.value } : x))
-                    )
-                  }
-                  placeholder="e.g. Sweep against spin"
-                  className="touch-target w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
+                  title="3. Continue to Nets"
+                  description="Once your players are selected, click here to set up your practice net stations."
+                  position="top"
+                  align="right"
+                  actionLabel="Got it"
+                  onDismiss={() => onDismissTip('setup-next-nets')}
+                  onDismissAll={onDismissAllTips}
                 />
               </div>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      ) : (
+        /* STEP 2: CLEAN NET STATIONS BUILDER */
+        <div key="stations-step" className="ui-view-enter space-y-4">
+          {day.stations.length > 0 && (
+            <div className="ui-card p-4">
+              <h3 className="mb-3 text-sm font-bold text-[var(--text-primary)]">
+                Published Nets ({day.stations.length})
+              </h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {day.stations.map((st) => {
+                  const isEditing = editingStationId === st.id;
+                  return (
+                    <div key={st.id} className="ui-card-elevated p-3.5 text-xs">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <span className="text-sm font-bold text-[var(--text-primary)]">
+                            Station {st.stationNumber}
+                          </span>
+                          <p className="text-[11px] text-[var(--text-muted)]">
+                            {st.sessionName} · {st.startTime}–{st.endTime}
+                          </p>
+                        </div>
+                        {!isViewer && (
+                          <div className="flex gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setEditingStationId(isEditing ? null : st.id)}
+                              className="ui-btn-secondary min-h-[30px] px-2 py-1"
+                              title="Edit station"
+                            >
+                              <Edit3 className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setPendingDeleteStation(st)}
+                              className="ui-btn-danger min-h-[30px] px-2 py-1"
+                              title="Delete station"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={() => setDrafts((prev) => [...prev, createDraft(prev.length + 1)])}
-          className="touch-target inline-flex items-center gap-1.5 rounded-lg border border-[#2563EB] bg-[#FFFFFF] px-4 py-2 text-sm font-semibold text-[#2563EB] hover:bg-[#EFF6FF]"
-        >
-          <Plus className="h-4 w-4" />
-          Add station
-        </button>
+                      <div className="mt-2.5 flex flex-wrap gap-1.5">
+                        <span className="rounded bg-[var(--accent-primary)]/15 px-2 py-0.5 font-semibold text-[var(--accent-primary)]">
+                          {st.trainingType === 'Other' ? st.customTrainingType : st.trainingType}
+                        </span>
+                        <span className="rounded border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-0.5 font-medium text-[var(--text-secondary)]">
+                          {st.netType}
+                        </span>
+                        <span className="rounded border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-0.5 font-medium text-[var(--text-secondary)]">
+                          {st.ballType}
+                        </span>
+                        <span className="rounded border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2 py-0.5 font-medium text-[var(--text-secondary)]">
+                          {st.bowlingType}
+                        </span>
+                      </div>
 
-        <button
-          type="button"
-          onClick={handlePublish}
-          className="touch-target rounded-lg bg-[#0F294A] px-6 py-2.5 text-sm font-semibold text-[#FFFFFF] hover:bg-[#1E3A5F]"
-        >
-          {day.stations.length > 0 ? 'Publish added stations' : 'Publish to live stations'}
-        </button>
-      </div>
+                      {isEditing && (
+                        <div className="mt-3 grid gap-2 border-t border-[var(--border-subtle)] pt-3">
+                          <UiSelect
+                            size="sm"
+                            value={st.netType}
+                            onChange={(val) => onEditPublishedStation({ ...st, netType: val })}
+                            options={NET_TYPES.map((n) => ({ value: n, label: n }))}
+                          />
+                          <UiSelect
+                            size="sm"
+                            value={st.ballType}
+                            onChange={(val) => onEditPublishedStation({ ...st, ballType: val })}
+                            options={BALL_TYPES.map((b) => ({ value: b, label: b }))}
+                          />
+                          <UiSelect
+                            size="sm"
+                            value={st.bowlingType}
+                            onChange={(val) =>
+                              onEditPublishedStation({ ...st, bowlingType: val })
+                            }
+                            options={BOWLING_TYPES.map((bw) => ({ value: bw, label: bw }))}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {!isViewer && (
+            <div className="space-y-4">
+              {drafts.map((d, idx) => (
+                <div key={d.key} className="ui-card space-y-4 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-subtle)] pb-3">
+                    <h3 className="text-sm font-bold text-[var(--text-primary)]">
+                      Configure Station {day.stations.length + idx + 1}
+                    </h3>
+                    <div className="relative flex flex-wrap items-center gap-1.5">
+                      <span className="text-[11px] font-semibold text-[var(--text-muted)]">
+                        Presets:
+                      </span>
+                      {STATION_PRESETS.map((preset, pIdx) => (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          onClick={() => {
+                            onDismissTip('setup-presets');
+                            updateDraft(d.key, {
+                              trainingType: preset.trainingType,
+                              netType: preset.netType,
+                              ballType: preset.ballType,
+                              bowlingType: preset.bowlingType,
+                            });
+                          }}
+                          className={`ui-btn-secondary min-h-[30px] px-2.5 py-1 text-[11px] ${
+                            idx === 0 && pIdx === 0 && isTipVisible('setup-presets')
+                              ? 'ring-2 ring-[#2563EB] ring-offset-2'
+                              : ''
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                      {idx === 0 && (
+                        <UiGuideTip
+                          visible={isTipVisible('setup-presets')}
+                          title="4. Quick Station Presets"
+                          description="Tap a preset here to auto-fill Training, Net, Ball, and Bowling type in 1 click."
+                          position="bottom"
+                          align="right"
+                          onDismiss={() => onDismissTip('setup-presets')}
+                          onDismissAll={onDismissAllTips}
+                        />
+                      )}
+                      {drafts.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setDrafts((prev) => prev.filter((x) => x.key !== d.key))
+                          }
+                          className="ui-link ml-2 text-rose-500"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Clean 2-Column Dropdown Form */}
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <div>
+                      <label className="ui-label">Time Slot</label>
+                      <UiSelect
+                        value={d.sessionId}
+                        onChange={(val) => updateDraft(d.key, { sessionId: val })}
+                        options={day.sessions.map((s) => ({
+                          value: s.id,
+                          label: `${s.name} (${s.startTime}–${s.endTime})`,
+                        }))}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="ui-label">Training Type</label>
+                      <UiSelect
+                        value={d.trainingType}
+                        onChange={(val) => updateDraft(d.key, { trainingType: val })}
+                        options={TRAINING_TYPES.map((t) => ({ value: t, label: t }))}
+                      />
+                    </div>
+
+                    {d.trainingType === 'Other' && (
+                      <div>
+                        <label className="ui-label">Custom Training Type</label>
+                        <input
+                          type="text"
+                          value={d.customTrainingType}
+                          onChange={(e) =>
+                            updateDraft(d.key, { customTrainingType: e.target.value })
+                          }
+                          placeholder="Specify training type"
+                          className="ui-input"
+                        />
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="ui-label">Net / Surface</label>
+                      <UiSelect
+                        value={d.netType}
+                        onChange={(val) => updateDraft(d.key, { netType: val })}
+                        options={NET_TYPES.map((n) => ({ value: n, label: n }))}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="ui-label">Ball Type</label>
+                      <UiSelect
+                        value={d.ballType}
+                        onChange={(val) => updateDraft(d.key, { ballType: val })}
+                        options={BALL_TYPES.map((b) => ({ value: b, label: b }))}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="ui-label">Bowling Type</label>
+                      <UiSelect
+                        value={d.bowlingType}
+                        onChange={(val) => updateDraft(d.key, { bowlingType: val })}
+                        options={BOWLING_TYPES.map((bw) => ({ value: bw, label: bw }))}
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2 lg:col-span-3">
+                      <label className="ui-label">Specific Focus (Optional)</label>
+                      <input
+                        type="text"
+                        value={d.focus}
+                        onChange={(e) => updateDraft(d.key, { focus: e.target.value })}
+                        placeholder="e.g. Sweep against spin, Leaving outside off"
+                        className="ui-input"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSection('players')}
+                    className="ui-btn-secondary"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    <span>Back to Players</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDrafts((prev) => [...prev, createDraft(prev.length + 1)])}
+                    className="ui-btn-secondary"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Add Another Station</span>
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onDismissTip('setup-publish');
+                      handlePublish();
+                    }}
+                    className={`ui-btn-primary px-6 ${
+                      !isTipVisible('setup-presets') && isTipVisible('setup-publish')
+                        ? 'ring-2 ring-[#2563EB] ring-offset-2'
+                        : ''
+                    }`}
+                  >
+                    <span>
+                      {day.stations.length > 0 ? 'Publish & Go Live' : 'Publish to Live Nets'}
+                    </span>
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                  <UiGuideTip
+                    visible={!isTipVisible('setup-presets') && isTipVisible('setup-publish')}
+                    title="5. Publish to Live Nets"
+                    description="Click here to publish your stations and jump straight to live ball-by-ball scoring."
+                    position="top"
+                    align="right"
+                    actionLabel="Got it"
+                    onDismiss={() => onDismissTip('setup-publish')}
+                    onDismissAll={onDismissAllTips}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <UiConfirmModal
+        open={Boolean(pendingDeleteStation)}
+        title={
+          pendingDeleteStation
+            ? `Delete Station ${pendingDeleteStation.stationNumber}?`
+            : 'Delete Station?'
+        }
+        description="Are you sure you want to remove this station from today's practice plan? This action cannot be undone."
+        confirmLabel="Delete Station"
+        onCancel={() => setPendingDeleteStation(null)}
+        onConfirm={() => {
+          if (pendingDeleteStation) {
+            onDeletePublishedStation(pendingDeleteStation.id);
+            setPendingDeleteStation(null);
+          }
+        }}
+      />
     </div>
   );
 };

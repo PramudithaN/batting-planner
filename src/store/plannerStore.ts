@@ -52,7 +52,12 @@ export function loadPlayers(): Player[] {
     const raw = localStorage.getItem(STORAGE_PLAYERS_KEY);
     if (!raw) return [...INITIAL_PLAYER_POOL];
     const parsed = JSON.parse(raw) as Player[];
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : [...INITIAL_PLAYER_POOL];
+    if (!Array.isArray(parsed) || parsed.length === 0) return [...INITIAL_PLAYER_POOL];
+    const avatarMap = new Map(INITIAL_PLAYER_POOL.map((p) => [p.id, p.avatarUrl]));
+    return parsed.map((p) => ({
+      ...p,
+      avatarUrl: avatarMap.has(p.id) ? avatarMap.get(p.id) : p.avatarUrl,
+    }));
   } catch {
     return [...INITIAL_PLAYER_POOL];
   }

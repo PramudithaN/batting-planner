@@ -46,21 +46,21 @@ export const PwaInstallBanner: React.FC = () => {
   };
 
   return (
-    <div className="border-b border-[#E2E8F0] bg-[#EFF6FF] px-4 py-2.5 text-xs text-[#0F294A]">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
+    <div className="border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-4 py-2 text-xs text-[var(--text-primary)]">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           {deferredPrompt ? (
             <>
-              <Download className="h-4 w-4 shrink-0 text-[#2563EB]" />
+              <Download className="h-4 w-4 shrink-0 text-[var(--accent-primary)]" />
               <span>
-                Install <strong>Batting Practice</strong> on your tablet home screen for 1-tap offline access.
+                Install <strong>Batting Practice</strong> on your tablet home screen for offline access.
               </span>
             </>
           ) : (
             <>
-              <Share className="h-4 w-4 shrink-0 text-[#2563EB]" />
+              <Share className="h-4 w-4 shrink-0 text-[var(--accent-primary)]" />
               <span>
-                On iPad/iPhone: tap <strong>Share</strong> then <strong>Add to Home Screen</strong> to install as an app.
+                On iPad/iPhone: tap <strong>Share</strong> then <strong>Add to Home Screen</strong> to install.
               </span>
             </>
           )}
@@ -70,7 +70,7 @@ export const PwaInstallBanner: React.FC = () => {
             <button
               type="button"
               onClick={handleInstall}
-              className="rounded-md bg-[#2563EB] px-3 py-1.5 text-xs font-semibold text-[#FFFFFF] hover:bg-[#1D4ED8]"
+              className="ui-btn-primary min-h-[32px] px-3 py-1 text-xs"
             >
               Install App
             </button>
@@ -79,7 +79,7 @@ export const PwaInstallBanner: React.FC = () => {
             type="button"
             aria-label="Dismiss install banner"
             onClick={() => setDismissed(true)}
-            className="rounded p-1 text-[#475569] hover:bg-[#DBEAFE]"
+            className="rounded-md p-1 text-[var(--text-muted)] hover:bg-[var(--bg-surface)]"
           >
             <X className="h-4 w-4" />
           </button>
