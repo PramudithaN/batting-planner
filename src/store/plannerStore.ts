@@ -9,8 +9,10 @@ import type {
   StationConfig,
   StationLock,
 } from '../domain/types';
+import { createMockPracticeDay } from './mockDatabase';
 
 const STORAGE_DAYS_KEY = 'slc_bp_days_v2';
+const STORAGE_MOCK_SEEDED_KEY = 'slc_bp_mock_seeded_v2';
 const STORAGE_PLAYERS_KEY = 'slc_bp_players_v2';
 const STORAGE_COACHES_KEY = 'slc_bp_coaches_v2';
 const STORAGE_SESSION_KEY = 'slc_bp_active_coach_v2';
@@ -87,7 +89,18 @@ export function saveActiveCoachId(coachId: string | null): void {
 export function loadAllDays(): Record<string, PracticeDay> {
   try {
     const raw = localStorage.getItem(STORAGE_DAYS_KEY);
-    if (!raw) return {};
+    if (!raw) {
+      if (!localStorage.getItem(STORAGE_MOCK_SEEDED_KEY)) {
+        const today = getTodayDateString();
+        const seeded: Record<string, PracticeDay> = {
+          [today]: createMockPracticeDay(today),
+        };
+        localStorage.setItem(STORAGE_DAYS_KEY, JSON.stringify(seeded));
+        localStorage.setItem(STORAGE_MOCK_SEEDED_KEY, '1');
+        return seeded;
+      }
+      return {};
+    }
     const parsed = JSON.parse(raw) as Record<string, PracticeDay>;
     return parsed && typeof parsed === 'object' ? parsed : {};
   } catch {
