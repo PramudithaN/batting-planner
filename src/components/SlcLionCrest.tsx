@@ -10,7 +10,7 @@ interface SlcLionCrestProps {
 export const SlcLionCrest: React.FC<SlcLionCrestProps> = ({ className = 'h-10 w-10' }) => {
   return (
     <img
-      src="/slc-logo.png"
+      src={`${import.meta.env.BASE_URL}slc-logo.png`}
       alt="Sri Lanka Cricket Logo"
       className={`${className} object-contain select-none`}
       draggable={false}

@@ -1,5 +1,5 @@
 const CACHE_NAME = 'slc-bp-v3';
-const APP_SHELL = ['/', '/index.html', '/manifest.json', '/slc-logo.png'];
+const APP_SHELL = ['./', './index.html', './manifest.json', './slc-logo.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -46,7 +46,7 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() => caches.match(request).then((cached) => cached || caches.match('/index.html')))
+        .catch(() => caches.match(request).then((cached) => cached || caches.match('./index.html')))
     );
     return;
   }

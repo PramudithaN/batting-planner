@@ -1,6 +1,8 @@
-# Sri Lanka Cricket — Batting Practice Planner
+# Sri Lanka Cricket: Batting Practice Planner
 
 A tablet- and mobile-first **Progressive Web App (PWA)** built for Sri Lanka Cricket High Performance batting practice planning, live ball-by-ball net scoring, interactive 3D wagon-wheel visualization, and match-grade Excel reporting.
+
+**Live Deployment (GitHub Pages):** https://pramudithan.github.io/batting-planner/
 
 ---
 
@@ -41,7 +43,9 @@ npm install
 npm run dev
 ```
 
-### Build & Verification
+### Build & GitHub Pages Deployment
+
+The production build outputs directly to the `docs/` folder for branch-based GitHub Pages hosting (`main` branch -> `/docs` folder, without GitHub Actions):
 
 ```bash
 npm run typecheck
@@ -69,5 +73,5 @@ Run `supabase/schema.sql` in the Supabase SQL Editor to provision PostgreSQL tab
 | Role | PIN | Access |
 | :--- | :--- | :--- |
 | **Master** | `1111` | Full setup, live scoring, reports, and history management |
-| **Coach** | `2222` – `5555` | Day setup, live scoring, and reports |
+| **Coach** | `2222` to `5555` | Day setup, live scoring, and reports |
 | **Viewer** | `0000` | Read-only access across all views |
