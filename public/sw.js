@@ -1,5 +1,5 @@
-const CACHE_NAME = 'slc-bp-v2';
-const APP_SHELL = ['/', '/index.html', '/manifest.json', '/icon.svg'];
+const CACHE_NAME = 'slc-bp-v3';
+const APP_SHELL = ['/', '/index.html', '/manifest.json', '/slc-logo.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -30,6 +30,28 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Network-first for HTML / navigation so users always get the latest CSS/JS hashes
+  const isNavigation =
+    request.mode === 'navigate' ||
+    url.pathname === '/' ||
+    url.pathname.endsWith('.html');
+
+  if (isNavigation) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok && url.origin === self.location.origin) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request).then((cached) => cached || caches.match('/index.html')))
+    );
+    return;
+  }
+
+  // Stale-while-revalidate for static assets
   event.respondWith(
     caches.match(request).then((cached) => {
       const networkFetch = fetch(request)

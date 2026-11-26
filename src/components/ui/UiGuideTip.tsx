@@ -51,7 +51,7 @@ export const UiGuideTip: React.FC<UiGuideTipProps> = ({
   return (
     <div
       role="tooltip"
-      className={`absolute z-40 w-72 rounded-xl border border-[#2563EB] bg-[#0B1F4D] p-3 text-left text-xs text-white shadow-2xl ${posClasses} ${alignClasses}`}
+      className={`absolute z-40 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-[#2563EB] bg-[#0B1F4D] p-3 text-left text-xs text-white shadow-2xl ${posClasses} ${alignClasses}`}
     >
       {/* Pointer Arrow */}
       <span

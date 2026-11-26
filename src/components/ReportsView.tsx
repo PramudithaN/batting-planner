@@ -235,7 +235,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         playerId: c.playerId,
         playerName: playerMap.get(c.playerId) ?? c.playerId,
         stationId: c.stationId,
-        stationLabel: st ? `Station ${st.stationNumber} · ${st.netType}` : c.stationId,
+        stationLabel: st ? `Station ${st.stationNumber} · ${st.netType}` : 'Removed Station',
         runs: rSum,
         balls: balls.length,
         fours,
@@ -273,7 +273,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         playerId: b.playerId,
         playerName: playerMap.get(b.playerId) ?? b.playerId,
         stationId: b.stationId,
-        stationLabel: st ? `Station ${st.stationNumber} · ${st.netType}` : b.stationId,
+        stationLabel: st ? `Station ${st.stationNumber} · ${st.netType}` : 'Removed Station',
         runs: rSum,
         balls: balls.length,
         fours,
@@ -418,7 +418,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       )}
 
       {/* Live KPI Cards */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <div className="ui-card p-4">
           <div className="flex items-center justify-between">
             <p className="ui-label mb-0">Total Balls</p>
@@ -620,8 +620,21 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             day.stations.length > 0 ? 'lg:col-span-7' : 'lg:col-span-12'
           }`}
         >
-          <div className="flex items-center justify-between bg-[#071A4B] px-4 py-3 text-white">
-            <div>
+          <div className="relative flex items-center justify-between overflow-hidden border-b-2 border-[#FACC15] bg-[#071A4B] px-4 py-3 text-white">
+            {/* Subtle Sri Lanka Broadcast Geometric Speed Stripes */}
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 400 64"
+              preserveAspectRatio="none"
+              className="pointer-events-none absolute inset-0 h-full w-full"
+            >
+              <polygon points="180,0 250,0 205,64 135,64" fill="#1D4ED8" fillOpacity="0.22" />
+              <polygon points="260,0 286,0 241,64 215,64" fill="#38BDF8" fillOpacity="0.14" />
+              <polygon points="322,0 334,0 289,64 277,64" fill="#881337" fillOpacity="0.55" />
+              <polygon points="334,0 339,0 294,64 289,64" fill="#FACC15" fillOpacity="0.65" />
+            </svg>
+
+            <div className="relative z-10">
               <h3 className="text-base font-extrabold tracking-wide text-[#FACC15]">
                 SCORE CARD
               </h3>
@@ -629,7 +642,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                 Sri Lanka · {day.practiceDate}
               </p>
             </div>
-            <SlcLionCrest className="h-9 w-9 shrink-0" />
+            <SlcLionCrest className="relative z-10 h-9 w-9 shrink-0 drop-shadow-sm" />
           </div>
 
           {scorecardRows.length === 0 ? (
@@ -637,7 +650,8 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
               No practice balls or completed records for this date yet.
             </p>
           ) : (
-            <div className="divide-y divide-[var(--border-subtle)]">
+            <div className="overflow-x-auto">
+              <div className="min-w-[540px] divide-y divide-[var(--border-subtle)]">
               <div className="grid grid-cols-12 items-center bg-[var(--bg-elevated)] px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                 <div className="col-span-4">Batting</div>
                 <div className="col-span-1 text-right">R</div>
@@ -740,6 +754,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                 </div>
                 <div className="col-span-1 text-right">-</div>
               </div>
+              </div>
             </div>
           )}
         </div>
@@ -751,7 +766,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
           <h3 className="mb-3 text-sm font-bold text-[var(--text-primary)]">
             Net / Station Breakdown
           </h3>
-          <table className="w-full text-left text-xs">
+          <table className="w-full min-w-[540px] text-left text-xs">
             <thead>
               <tr className="border-b border-[var(--border-subtle)] text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
                 <th className="py-2 pr-3">Station</th>

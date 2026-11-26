@@ -126,7 +126,7 @@ export const UiDatePicker: React.FC<UiDatePickerProps> = ({
       </button>
 
       {open && (
-        <div className="absolute left-0 z-50 mt-1.5 w-72 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3 shadow-xl ring-1 ring-black/5">
+        <div className="absolute left-0 z-50 mt-1.5 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3 shadow-xl ring-1 ring-black/5">
           {/* Month Header */}
           <div className="mb-3 flex items-center justify-between">
             <button

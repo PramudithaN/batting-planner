@@ -384,76 +384,77 @@ export function App() {
         </div>
 
         <div className="border-b border-white/10">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-2.5">
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2.5">
-                <SlcLionCrest className="h-9 w-9 shrink-0" />
-                <div className="hidden sm:block">
-                  <h1 className="text-sm font-bold leading-tight tracking-tight text-white">
-                    Sri Lanka Cricket
-                  </h1>
-                  <p className="text-[11px] font-medium text-[#EAB308]">
-                    Batting Practice Planner
-                  </p>
-                </div>
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-2.5 px-3 py-2.5 sm:px-4">
+            {/* Brand */}
+            <div className="flex shrink-0 items-center gap-2.5">
+              <SlcLionCrest className="h-8 w-8 shrink-0 sm:h-9 sm:w-9" />
+              <div>
+                <h1 className="text-sm font-bold leading-tight tracking-tight text-white">
+                  Sri Lanka Cricket
+                </h1>
+                <p className="text-[11px] font-medium text-[#EAB308]">
+                  Batting Practice Planner
+                </p>
               </div>
-
-              <nav
-                aria-label="Planner sections"
-                className="flex items-center gap-1 rounded-lg bg-[var(--bg-header-pill)] p-1"
-              >
-                {(
-                  [
-                    {
-                      key: 'setup',
-                      label: 'Day Setup',
-                      icon: CalendarPlus,
-                      badge: day.availablePlayerIds.length,
-                    },
-                    {
-                      key: 'live',
-                      label: 'Live Nets',
-                      icon: Activity,
-                      badge: day.stations.length,
-                    },
-                    {
-                      key: 'reports',
-                      label: 'Reports',
-                      icon: BarChart3,
-                      badge: activeBallsCount,
-                    },
-                  ] as const
-                ).map(({ key, label, icon: Icon, badge }) => {
-                  const active = tab === key;
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => setTab(key)}
-                      className={`inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-semibold transition-colors ${
-                        active
-                          ? 'bg-[#2563EB] text-white'
-                          : 'text-slate-300 hover:bg-white/10 hover:text-white'
-                      }`}
-                    >
-                      <Icon className="h-3.5 w-3.5" />
-                      <span>{label}</span>
-                      {badge > 0 && (
-                        <span
-                          className={`tabular-nums rounded px-1.5 py-0.5 text-[10px] font-bold leading-none ${
-                            active ? 'bg-white/20 text-white' : 'bg-white/10 text-slate-300'
-                          }`}
-                        >
-                          {badge}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </nav>
             </div>
 
-            <div className="flex items-center gap-2">
+            {/* Navigation: Full-width clean 3-column bar on mobile/tablet, inline on lg+ desktop */}
+            <nav
+              aria-label="Planner sections"
+              className="order-last grid w-full grid-cols-3 gap-1 rounded-lg bg-[var(--bg-header-pill)] p-1 lg:order-none lg:flex lg:w-auto lg:items-center"
+            >
+              {(
+                [
+                  {
+                    key: 'setup',
+                    label: 'Day Setup',
+                    icon: CalendarPlus,
+                    badge: day.availablePlayerIds.length,
+                  },
+                  {
+                    key: 'live',
+                    label: 'Live Nets',
+                    icon: Activity,
+                    badge: day.stations.length,
+                  },
+                  {
+                    key: 'reports',
+                    label: 'Reports',
+                    icon: BarChart3,
+                    badge: activeBallsCount,
+                  },
+                ] as const
+              ).map(({ key, label, icon: Icon, badge }) => {
+                const active = tab === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setTab(key)}
+                    className={`inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-2 text-xs font-semibold transition-colors sm:px-3 ${
+                      active
+                        ? 'bg-[#2563EB] text-white'
+                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    <Icon className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{label}</span>
+                    {badge > 0 && (
+                      <span
+                        className={`tabular-nums rounded px-1.5 py-0.5 text-[10px] font-bold leading-none ${
+                          active ? 'bg-white/20 text-white' : 'bg-white/10 text-slate-300'
+                        }`}
+                      >
+                        {badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+
+            {/* Right Controls */}
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
               <span
                 className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold ${
                   isOnline

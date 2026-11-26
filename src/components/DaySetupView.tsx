@@ -496,7 +496,7 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
               })}
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border-subtle)] pt-3">
+            <div className="flex flex-col-reverse gap-3 border-t border-[var(--border-subtle)] pt-3 sm:flex-row sm:items-center sm:justify-between">
               <details className="text-[11px] text-[var(--text-muted)]">
                 <summary className="cursor-pointer font-semibold text-[var(--text-secondary)]">
                   Squad pool sources
@@ -515,7 +515,7 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
                     onDismissTip('setup-next-nets');
                     handleGoToStations();
                   }}
-                  className={`ui-btn-primary px-6 ${
+                  className={`ui-btn-primary w-full px-6 sm:w-auto ${
                     !isTipVisible('setup-slots') &&
                     !isTipVisible('setup-players') &&
                     isTipVisible('setup-next-nets')
@@ -772,12 +772,12 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
                 </div>
               ))}
 
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setSection('players')}
-                    className="ui-btn-secondary"
+                    className="ui-btn-secondary flex-1 sm:flex-none"
                   >
                     <ArrowLeft className="h-4 w-4" />
                     <span>Back to Players</span>
@@ -785,7 +785,7 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setDrafts((prev) => [...prev, createDraft(prev.length + 1)])}
-                    className="ui-btn-secondary"
+                    className="ui-btn-secondary flex-1 sm:flex-none"
                   >
                     <Plus className="h-4 w-4" />
                     <span>Add Another Station</span>
@@ -799,7 +799,7 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
                       onDismissTip('setup-publish');
                       handlePublish();
                     }}
-                    className={`ui-btn-primary px-6 ${
+                    className={`ui-btn-primary w-full px-6 sm:w-auto ${
                       !isTipVisible('setup-presets') && isTipVisible('setup-publish')
                         ? 'ring-2 ring-[#2563EB] ring-offset-2'
                         : ''

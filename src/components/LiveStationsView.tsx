@@ -56,12 +56,18 @@ interface LiveStationsViewProps {
 }
 
 const OUTCOME_STYLE: Record<string, string> = {
-  Solid: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-  'Not middled': 'border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400',
-  'Played and missed': 'border-slate-500/40 bg-slate-500/10 text-[var(--text-secondary)]',
-  Beaten: 'border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-400',
-  Edged: 'border-orange-500/40 bg-orange-500/10 text-orange-600 dark:text-orange-400',
-  Left: 'border-sky-500/40 bg-sky-500/10 text-sky-600 dark:text-sky-400',
+  Solid:
+    'border-[var(--border-strong)] border-l-4 border-l-[#16A34A] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]',
+  'Not middled':
+    'border-[var(--border-strong)] border-l-4 border-l-[#D97706] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]',
+  'Played and missed':
+    'border-[var(--border-strong)] border-l-4 border-l-[#64748B] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]',
+  Beaten:
+    'border-[var(--border-strong)] border-l-4 border-l-[#DC2626] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]',
+  Edged:
+    'border-[var(--border-strong)] border-l-4 border-l-[#EA580C] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]',
+  Left:
+    'border-[var(--border-strong)] border-l-4 border-l-[#2563EB] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]',
 };
 
 const OUTCOME_ACTIVE: Record<string, string> = {
@@ -111,7 +117,6 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
   const [shotY, setShotY] = useState<number | undefined>(undefined);
   const [runs, setRuns] = useState<string | undefined>(undefined);
   const [contactOutcome, setContactOutcome] = useState<string | undefined>(undefined);
-  const [lastSavedMsg, setLastSavedMsg] = useState<string | null>(null);
 
   // Completion modal
   const [showCompleteModal, setShowCompleteModal] = useState(false);
@@ -175,7 +180,6 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
 
   const handleSelectPlayer = (playerId: string) => {
     setSelectedPlayerId(playerId);
-    setLastSavedMsg(null);
     if (activeStationId && playerId && !isViewer) {
       onAcquireLock(activeStationId, playerId, false);
     }
@@ -226,7 +230,6 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
     const summary = `Ball #${ball.ballNumber} saved: ${finalOutcome}${
       runs ? ` · ${runs === 'Dot' ? '0 runs' : `${runs} runs`}` : ''
     }${shotType ? ` · ${shotType}` : ''}`;
-    setLastSavedMsg(summary);
     onToast(summary);
 
     setLine(undefined);
@@ -761,15 +764,31 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-3 bg-[#1D4ED8] px-3.5 py-2 text-white">
-                      <div className="flex min-w-0 items-center gap-2.5">
-                        <SlcLionCrest className="h-7 w-7 shrink-0" />
+                    <div className="relative flex items-center justify-between gap-3 overflow-hidden border-b-2 border-[#FACC15] bg-gradient-to-r from-[#091E54] via-[#1D4ED8] to-[#0B3B8C] px-3.5 py-2.5 text-white">
+                      {/* Crisp Sri Lanka Jersey Geometric Speed Stripes */}
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 400 72"
+                        preserveAspectRatio="none"
+                        className="pointer-events-none absolute inset-0 h-full w-full"
+                      >
+                        <polygon points="0,0 140,0 92,72 0,72" fill="#07163B" fillOpacity="0.45" />
+                        <polygon points="175,0 245,0 197,72 127,72" fill="#38BDF8" fillOpacity="0.16" />
+                        <polygon points="255,0 282,0 234,72 207,72" fill="#60A5FA" fillOpacity="0.14" />
+                        <polygon points="295,0 400,0 400,72 247,72" fill="#07163B" fillOpacity="0.4" />
+                        {/* Subtle Maroon & Gold Jersey Trim Accent */}
+                        <polygon points="338,0 350,0 302,72 290,72" fill="#881337" fillOpacity="0.55" />
+                        <polygon points="350,0 355,0 307,72 302,72" fill="#FACC15" fillOpacity="0.65" />
+                      </svg>
+
+                      <div className="relative z-10 flex min-w-0 items-center gap-2.5">
+                        <SlcLionCrest className="h-8 w-8 shrink-0 drop-shadow-sm" />
                         <div className="min-w-0">
                           <h3 className="truncate text-sm font-extrabold uppercase tracking-wide">
                             {activePlayer?.name}
                           </h3>
                           {activePlayer?.squads && activePlayer.squads.length > 0 && (
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-100">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#FACC15]">
                               {activePlayer.squads.join(' · ')}
                             </p>
                           )}
@@ -779,13 +798,13 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                         name={activePlayer?.name ?? 'Player'}
                         avatarUrl={activePlayer?.avatarUrl}
                         size="lg"
-                        className="border-white/30"
+                        className="relative z-10 border-2 border-[#FACC15]/80 shadow-sm"
                       />
                     </div>
 
-                    <div className="grid grid-cols-5 divide-x divide-[var(--border-subtle)] bg-[var(--bg-elevated)] text-center">
+                    <div className="grid grid-cols-3 divide-x divide-[var(--border-subtle)] bg-[var(--bg-elevated)] text-center sm:grid-cols-5">
                       <div className="py-2">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)] sm:text-[10px]">
                           Runs
                         </p>
                         <p className="tabular-nums text-sm font-extrabold text-[var(--text-primary)]">
@@ -793,7 +812,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                         </p>
                       </div>
                       <div className="py-2">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)] sm:text-[10px]">
                           Balls
                         </p>
                         <p className="tabular-nums text-sm font-extrabold text-[var(--text-primary)]">
@@ -801,23 +820,23 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                         </p>
                       </div>
                       <div className="py-2">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)] sm:text-[10px]">
                           S. Rate
                         </p>
                         <p className="tabular-nums text-sm font-extrabold text-[var(--text-primary)]">
                           {batterStats.strikeRate}
                         </p>
                       </div>
-                      <div className="py-2">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                      <div className="border-t border-[var(--border-subtle)] py-2 sm:border-t-0">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)] sm:text-[10px]">
                           4s / 6s
                         </p>
                         <p className="tabular-nums text-sm font-extrabold text-[var(--text-primary)]">
                           {batterStats.fours}/{batterStats.sixes}
                         </p>
                       </div>
-                      <div className="py-2">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                      <div className="col-span-2 border-t border-[var(--border-subtle)] py-2 sm:col-span-1 sm:border-t-0">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)] sm:text-[10px]">
                           Solid %
                         </p>
                         <p className="tabular-nums text-sm font-extrabold text-[var(--accent-primary)]">
@@ -898,21 +917,30 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                   <div>
                     <label className="ui-label">Runs (Optional)</label>
                     <div className="grid grid-cols-6 gap-1.5">
-                      {RUN_OPTIONS.map((r) => (
-                        <button
-                          key={r}
-                          type="button"
-                          disabled={!canScore}
-                          onClick={() => setRuns(runs === r ? undefined : r)}
-                          className={`touch-target tabular-nums rounded-lg border text-sm font-bold transition-colors ${
-                            runs === r
-                              ? 'border-amber-600 bg-amber-600 text-white'
-                              : 'border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:border-amber-500/50'
-                          }`}
-                        >
-                          {r}
-                        </button>
-                      ))}
+                      {RUN_OPTIONS.map((r) => {
+                        const selected = runs === r;
+                        const activeStyle =
+                          r === '6'
+                            ? 'border-[#881337] bg-[#881337] text-white shadow-xs'
+                            : r === '4'
+                              ? 'border-[#B45309] bg-[#D97706] text-white shadow-xs'
+                              : 'border-[#1E40AF] bg-[#1D4ED8] text-white shadow-xs';
+                        return (
+                          <button
+                            key={r}
+                            type="button"
+                            disabled={!canScore}
+                            onClick={() => setRuns(selected ? undefined : r)}
+                            className={`touch-target tabular-nums rounded-lg border text-sm font-extrabold transition-colors ${
+                              selected
+                                ? activeStyle
+                                : 'border-[var(--border-strong)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:border-[#2563EB]'
+                            }`}
+                          >
+                            {r}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -962,14 +990,6 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                       onDismissAll={onDismissAllTips}
                     />
                   </div>
-
-                  {/* Instant Save Confirmation Banner */}
-                  {lastSavedMsg && (
-                    <div className="ui-view-enter flex items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                      <CheckCircle2 className="h-4 w-4 shrink-0" />
-                      <span>{lastSavedMsg}</span>
-                    </div>
-                  )}
 
                   {/* Cricket Broadcast Delivery Strip */}
                   {recentBalls.length > 0 && (
@@ -1028,13 +1048,13 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                 </div>
 
                 {/* Action Bar */}
-                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border-subtle)] pt-3">
+                <div className="flex flex-col gap-2 border-t border-[var(--border-subtle)] pt-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex gap-2">
                     <button
                       type="button"
                       disabled={!canScore || playerBalls.length === 0}
                       onClick={() => onUndoLastBall(activeStation.id, activePlayerId)}
-                      className="ui-btn-danger"
+                      className="ui-btn-danger flex-1 sm:flex-none"
                     >
                       <Undo2 className="h-4 w-4" />
                       <span>Undo</span>
@@ -1043,7 +1063,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                       type="button"
                       disabled={!canScore}
                       onClick={() => setShowCompleteModal(true)}
-                      className="ui-btn-secondary"
+                      className="ui-btn-secondary flex-1 sm:flex-none"
                     >
                       <CheckCircle2 className="h-4 w-4 text-[var(--accent-primary)]" />
                       <span>Complete Player</span>
@@ -1055,7 +1075,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                       type="button"
                       disabled={!canScore || !contactOutcome}
                       onClick={() => commitBall()}
-                      className="ui-btn-primary px-5"
+                      className="ui-btn-primary w-full px-5 sm:w-auto"
                     >
                       <span>Save & Next Ball</span>
                       <ArrowRight className="h-4 w-4" />

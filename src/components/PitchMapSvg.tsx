@@ -17,12 +17,18 @@ const LENGTH_ABBR: Record<string, string> = {
 };
 
 const LENGTH_ACCENT: Record<string, string> = {
-  'Full toss': 'bg-amber-500/15 hover:bg-amber-500/25 border-amber-500/30',
-  Yorker: 'bg-rose-500/15 hover:bg-rose-500/25 border-rose-500/30',
-  Full: 'bg-emerald-500/15 hover:bg-emerald-500/25 border-emerald-500/30',
-  'Good length': 'bg-sky-500/15 hover:bg-sky-500/25 border-sky-500/30',
-  'Back of a length': 'bg-indigo-500/15 hover:bg-indigo-500/25 border-indigo-500/30',
-  Short: 'bg-slate-500/15 hover:bg-slate-500/25 border-slate-500/30',
+  'Full toss':
+    'border-[var(--border-strong)] border-l-4 border-l-[#D97706] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]',
+  Yorker:
+    'border-[var(--border-strong)] border-l-4 border-l-[#DC2626] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]',
+  Full:
+    'border-[var(--border-strong)] border-l-4 border-l-[#2563EB] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]',
+  'Good length':
+    'border-[var(--border-strong)] border-l-4 border-l-[#1D4ED8] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]',
+  'Back of a length':
+    'border-[var(--border-strong)] border-l-4 border-l-[#475569] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]',
+  Short:
+    'border-[var(--border-strong)] border-l-4 border-l-[#334155] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]',
 };
 
 export const PitchMapSvg: React.FC<PitchMapSvgProps> = ({
@@ -60,10 +66,10 @@ export const PitchMapSvg: React.FC<PitchMapSvgProps> = ({
                 type="button"
                 title={`${length} · ${line}`}
                 onClick={() => onSelect(line, length)}
-                className={`h-9 rounded-lg border text-[11px] font-bold transition-all active:scale-95 ${
+                className={`h-9 rounded-lg border text-[11px] font-extrabold transition-all active:scale-95 ${
                   active
-                    ? 'border-[#10B981] bg-[#10B981] text-white shadow-sm ring-2 ring-[#10B981]/30'
-                    : `${LENGTH_ACCENT[length] ?? 'bg-[var(--bg-surface)]'} text-[var(--text-primary)]`
+                    ? 'border-[#0B1F4D] bg-[#1D4ED8] text-white shadow-sm ring-2 ring-[#2563EB]/40'
+                    : `${LENGTH_ACCENT[length] ?? 'bg-[var(--bg-surface)]'}`
                 }`}
               >
                 {LENGTH_ABBR[length] ?? length.slice(0, 2)}
@@ -73,7 +79,7 @@ export const PitchMapSvg: React.FC<PitchMapSvgProps> = ({
         )}
       </div>
 
-      <div className="mt-2 flex justify-between px-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+      <div className="mt-2 flex justify-between px-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--text-muted)] sm:text-[10px]">
         <span>Wide Off</span>
         <span>Off</span>
         <span>Middle</span>

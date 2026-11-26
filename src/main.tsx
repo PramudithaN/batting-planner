@@ -5,9 +5,18 @@ import './index.css';
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {
-      // Service worker registration is optional in non-HTTPS dev environments.
-    });
+    if (import.meta.env.PROD) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {
+        // Service worker registration is optional in non-HTTPS environments.
+      });
+    } else {
+      // Unregister any stale service workers during local development so HMR stays clean.
+      navigator.serviceWorker.getRegistrations().then((regs) => {
+        for (const reg of regs) {
+          reg.unregister();
+        }
+      });
+    }
   });
 }
 

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.theme-dark, .theme-dark *));
 
 :root {
   color-scheme: light;
@@ -36,6 +37,12 @@
   --accent-gold: #eab308;
   --accent-maroon: #9f1239;
   --accent-danger: #ef4444;
+}
+
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100%;
 }
 
 body {
