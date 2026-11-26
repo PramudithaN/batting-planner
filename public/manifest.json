@@ -1,0 +1,19 @@
+{
+  "name": "Batting Practice Planner - Sri Lanka Cricket",
+  "short_name": "Batting Practice",
+  "description": "High Performance batting practice planning, live ball-by-ball scoring, wagon wheels, and Excel reporting.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#0F294A",
+  "background_color": "#F8FAFC",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

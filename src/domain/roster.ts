@@ -1,0 +1,55 @@
+import type { CoachAccount, Player } from './types';
+
+export const PLAYER_POOL_SOURCES = [
+  'ODI XI - Pakistan tri-series final, 31 October 2026',
+  'T20I XI - Pakistan third T20I, 13 October 2026',
+  'Test XI - Pakistan first Test, 9 November 2026',
+  'Sri Lanka A squad - ACC Asia Cup Rising Stars 2025',
+] as const;
+
+export const INITIAL_PLAYER_POOL: Player[] = [
+  { id: 'akila-dananjaya', name: 'Akila Dananjaya', squads: ['ODI'] },
+  { id: 'ashen-bandara', name: 'Ashen Bandara', squads: ['Sri Lanka A'] },
+  { id: 'avishka-fernando', name: 'Avishka Fernando', squads: ['ODI'] },
+  { id: 'bhanuka-rajapaksa', name: 'Bhanuka Rajapaksa', squads: ['T20I'] },
+  { id: 'chamika-karunaratne', name: 'Chamika Karunaratne', squads: ['ODI', 'T20I'] },
+  { id: 'charith-asalanka', name: 'Charith Asalanka', squads: ['ODI', 'T20I'] },
+  { id: 'dasun-shanaka', name: 'Dasun Shanaka', squads: ['ODI', 'T20I'] },
+  { id: 'dhananjaya-de-silva', name: 'Dhananjaya de Silva', squads: ['Test', 'ODI'] },
+  { id: 'dilshan-madushanka', name: 'Dilshan Madushanka', squads: ['ODI', 'T20I'] },
+  { id: 'dinesh-chandimal', name: 'Dinesh Chandimal', squads: ['Test'] },
+  { id: 'dunith-wellalage', name: 'Dunith Wellalage', squads: ['ODI', 'T20I', 'Sri Lanka A'] },
+  { id: 'dushmantha-chameera', name: 'Dushmantha Chameera', squads: ['ODI', 'T20I'] },
+  { id: 'eshan-malinga', name: 'Eshan Malinga', squads: ['Sri Lanka A'] },
+  { id: 'janith-liyanage', name: 'Janith Liyanage', squads: ['ODI'] },
+  { id: 'kamindu-mendis', name: 'Kamindu Mendis', squads: ['Test', 'ODI', 'T20I'] },
+  { id: 'kamil-mishara', name: 'Kamil Mishara', squads: ['Sri Lanka A'] },
+  { id: 'kasun-rajitha', name: 'Kasun Rajitha', squads: ['Test'] },
+  { id: 'kusal-mendis', name: 'Kusal Mendis', squads: ['Test', 'ODI', 'T20I'] },
+  { id: 'kusal-perera', name: 'Kusal Perera', squads: ['ODI', 'T20I'] },
+  { id: 'lahiru-kumara', name: 'Lahiru Kumara', squads: ['Test', 'ODI'] },
+  { id: 'lahiru-udhara', name: 'Lahiru Udara', squads: ['Sri Lanka A'] },
+  { id: 'maheesh-theekshana', name: 'Maheesh Theekshana', squads: ['ODI', 'T20I'] },
+  { id: 'matheesha-pathirana', name: 'Matheesha Pathirana', squads: ['T20I'] },
+  { id: 'milan-rathnayake', name: 'Milan Rathnayake', squads: ['Test', 'Sri Lanka A'] },
+  { id: 'nishan-madushka', name: 'Nishan Madushka', squads: ['Test', 'ODI', 'Sri Lanka A'] },
+  { id: 'nuwan-thushara', name: 'Nuwan Thushara', squads: ['T20I'] },
+  { id: 'nuwanidu-fernando', name: 'Nuwanidu Fernando', squads: ['ODI', 'Sri Lanka A'] },
+  { id: 'pathum-nissanka', name: 'Pathum Nissanka', squads: ['Test', 'ODI', 'T20I'] },
+  { id: 'pavan-rathnayake', name: 'Pavan Rathnayake', squads: ['Sri Lanka A'] },
+  { id: 'prabath-jayasuriya', name: 'Prabath Jayasuriya', squads: ['Test'] },
+  { id: 'ramesh-mendis', name: 'Ramesh Mendis', squads: ['Test'] },
+  { id: 'sadeera-samarawickrama', name: 'Sadeera Samarawickrama', squads: ['Test', 'ODI'] },
+  { id: 'sahan-arachchige', name: 'Sahan Arachchige', squads: ['Sri Lanka A'] },
+  { id: 'vijayakanth-viyaskanth', name: 'Vijayakanth Viyaskanth', squads: ['Sri Lanka A'] },
+  { id: 'wanindu-hasaranga', name: 'Wanindu Hasaranga', squads: ['ODI', 'T20I'] },
+];
+
+export const INITIAL_COACH_ACCOUNTS: CoachAccount[] = [
+  { id: 'coach-hashan', name: 'Hashan Thilakarathna', role: 'master', pin: '1111' },
+  { id: 'coach-dhammika', name: 'Dhammika Sudarshana', role: 'coach', pin: '2222' },
+  { id: 'coach-saman', name: 'Saman Jayantha', role: 'coach', pin: '3333' },
+  { id: 'coach-ashan', name: 'Ashan Priyanjan', role: 'coach', pin: '4444' },
+  { id: 'coach-thamra', name: 'Thamra Abeyrathna', role: 'coach', pin: '5555' },
+  { id: 'viewer-analyst', name: 'HP Observer (Read-Only)', role: 'viewer', pin: '0000' },
+];
