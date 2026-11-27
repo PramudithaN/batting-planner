@@ -28,6 +28,7 @@ import { UiDatePicker } from '../../components/ui/UiDatePicker';
 import { UiGuideTip } from '../../components/ui/UiGuideTip';
 import { UiSelect } from '../../components/ui/UiSelect';
 import { UiTimePicker } from '../../components/ui/UiTimePicker';
+import { hapticSuccess } from '../../lib/haptics';
 
 interface DaySetupViewProps {
   day: PracticeDay;
@@ -222,6 +223,7 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
       };
     });
 
+    hapticSuccess();
     onPublishStations(newStations);
     setDrafts([createDraft(1)]);
     onGoToLive();

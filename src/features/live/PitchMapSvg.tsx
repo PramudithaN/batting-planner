@@ -8,6 +8,7 @@ import {
   type PitchLengthZone,
 } from '../../domain/types';
 import { disposeThreeGroup } from '../../lib/threeUtils';
+import { hapticTap } from '../../lib/haptics';
 
 interface PitchMapSvgProps {
   selectedLine?: string;
@@ -324,6 +325,7 @@ export const PitchMapSvg: React.FC<PitchMapSvgProps> = ({
       const lineIdx = Math.min(curLines.length - 1, Math.max(0, Math.floor(ratio * curLines.length)));
       const pickedLine = curLines[lineIdx];
 
+      hapticTap();
       setLastTapWorld({ x: clampedX, z: clampedZ });
       curSelect(pickedLine, zone.label);
     };

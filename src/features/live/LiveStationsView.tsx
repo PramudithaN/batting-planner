@@ -39,6 +39,7 @@ import { PitchMapSvg } from './PitchMapSvg';
 import { PlayerAvatar } from '../../components/ui/PlayerAvatar';
 import { UiGuideTip } from '../../components/ui/UiGuideTip';
 import { WagonWheelSvg } from '../../components/3d/WagonWheelSvg';
+import { hapticSuccess, hapticTap, hapticWarning } from '../../lib/haptics';
 
 interface LiveStationsViewProps {
   day: PracticeDay;
@@ -153,6 +154,14 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
   const [contactOutcome, setContactOutcome] = useState<string | undefined>(undefined);
   const [isWicket, setIsWicket] = useState<boolean>(false);
   const [dismissalType, setDismissalType] = useState<string | undefined>(undefined);
+  const [justLoggedOutcome, setJustLoggedOutcome] = useState<string | null>(null);
+  const flashTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (flashTimerRef.current !== null) window.clearTimeout(flashTimerRef.current);
+    };
+  }, []);
 
   // Completion modal
   const [showCompleteModal, setShowCompleteModal] = useState(false);
@@ -244,6 +253,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
   };
 
   const handleSelectPlayer = (playerId: string) => {
+    hapticTap();
     setSelectedPlayerId(playerId);
     if (activeStationId && playerId && !isViewer) {
       onAcquireLock(activeStationId, playerId, false);
@@ -296,7 +306,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
 
     onLogBall(ball);
 
-    const summary = `Ball #${ball.ballNumber} saved: ${finalOutcome}${
+    const summary = `Ball ${ball.ballNumber} logged: ${finalOutcome}${
       ball.isWicket ? ` · OUT (${ball.dismissalType ?? 'Wicket'})` : ''
     }${runs ? ` · ${runs === 'Dot' ? '0 runs' : `${runs} runs`}` : ''}${
       shotType ? ` · ${shotType}` : ''
@@ -317,8 +327,16 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
   const handleOutcomeTap = (co: string) => {
     if (!canScore) return;
     if (autoSaveOnOutcome) {
+      hapticSuccess();
+      if (flashTimerRef.current !== null) window.clearTimeout(flashTimerRef.current);
+      setJustLoggedOutcome(co);
+      flashTimerRef.current = window.setTimeout(() => {
+        setJustLoggedOutcome(null);
+        flashTimerRef.current = null;
+      }, 480);
       commitBall(co);
     } else {
+      hapticTap();
       setContactOutcome(co);
     }
   };
@@ -348,6 +366,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
       completedBy: currentCoach.name,
       completedAt: new Date().toISOString(),
     });
+    hapticSuccess();
     setShowCompleteModal(false);
     setRemarks('');
     onToast('Player station completed.');
@@ -935,7 +954,10 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                             key={bs}
                             type="button"
                             disabled={!canScore}
-                            onClick={() => setBowlingStyle(bowlingStyle === bs ? undefined : bs)}
+                            onClick={() => {
+                            hapticTap();
+                            setBowlingStyle(bowlingStyle === bs ? undefined : bs);
+                          }}
                             className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
                               bowlingStyle === bs
                                 ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-white'
@@ -982,6 +1004,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                           type="button"
                           disabled={!canScore}
                           onClick={() => {
+                            hapticTap();
                             if (shotType === sh) {
                               setShotType(undefined);
                             } else {
@@ -1022,7 +1045,10 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                             key={r}
                             type="button"
                             disabled={!canScore}
-                            onClick={() => setRuns(selected ? undefined : r)}
+                            onClick={() => {
+                              hapticTap();
+                              setRuns(selected ? undefined : r);
+                            }}
                             className={`touch-target tabular-nums rounded-lg border text-sm font-extrabold transition-colors ${
                               selected
                                 ? activeStyle
@@ -1064,6 +1090,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                             type="button"
                             disabled={!canScore}
                             onClick={() => {
+                              hapticTap();
                               if (active) {
                                 setIsWicket(false);
                                 setDismissalType(undefined);
@@ -1098,7 +1125,8 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                       }`}
                     >
                       {CONTACT_OUTCOMES.map((co) => {
-                        const active = !autoSaveOnOutcome && contactOutcome === co;
+                        const isFlashed = autoSaveOnOutcome && justLoggedOutcome === co;
+                        const active = (!autoSaveOnOutcome && contactOutcome === co) || isFlashed;
                         return (
                           <button
                             key={co}
@@ -1108,13 +1136,17 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                               onDismissTip('live-outcome');
                               handleOutcomeTap(co);
                             }}
-                            className={`touch-target rounded-lg border px-3 py-2 text-xs font-bold transition-colors ${
+                            className={`touch-target cursor-pointer rounded-lg border px-3 py-2 text-xs font-bold transition-all duration-150 active:scale-[0.97] ${
                               active
-                                ? OUTCOME_ACTIVE[co]
-                                : OUTCOME_BASE_STYLE
+                                ? `${OUTCOME_ACTIVE[co]} ${
+                                    isFlashed
+                                      ? 'ring-2 ring-[var(--accent-primary)] ring-offset-1 shadow-sm'
+                                      : ''
+                                  }`
+                                : `${OUTCOME_BASE_STYLE} hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)]`
                             }`}
                           >
-                            {co}
+                            {isFlashed ? `✓ ${co}` : co}
                           </button>
                         );
                       })}
@@ -1142,44 +1174,50 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                           {playerBalls.length} total
                         </span>
                       </div>
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-1.5">
                         {recentBalls.map((b) => {
                           const isBoundary = b.runs === '4' || b.runs === '6';
                           const isDot = !b.runs || b.runs === 'Dot';
                           return (
                             <div
                               key={b.id}
-                              className="flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface)] py-1 pr-2.5 pl-1 text-[11px]"
+                              className="flex max-w-full items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-surface)] py-1 pr-2.5 pl-1 text-[11px]"
                             >
                               <span
-                                className={`tabular-nums flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-extrabold ${
-                                  b.runs === '6'
+                                className={`tabular-nums flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold ${
+                                  b.isWicket
                                     ? 'bg-rose-600 text-white'
-                                    : b.runs === '4'
-                                      ? 'bg-amber-500 text-white'
-                                      : isDot
-                                        ? 'bg-slate-500/20 text-[var(--text-secondary)]'
-                                        : 'bg-[#2563EB] text-white'
+                                    : b.runs === '6'
+                                      ? 'bg-rose-600 text-white'
+                                      : b.runs === '4'
+                                        ? 'bg-amber-500 text-white'
+                                        : isDot
+                                          ? 'bg-slate-500/20 text-[var(--text-secondary)]'
+                                          : 'bg-[#2563EB] text-white'
                                 }`}
                               >
-                                {b.runs === 'Dot' ? '0' : b.runs ?? '·'}
+                                {b.isWicket ? 'W' : b.runs === 'Dot' || !b.runs ? '0' : b.runs}
                               </span>
-                              <div className="leading-tight">
+                              <div className="flex flex-wrap items-center gap-x-1 leading-tight">
+                                <span className="tabular-nums text-[10px] font-semibold text-[var(--text-muted)]">
+                                  Ball {b.ballNumber}
+                                </span>
+                                <span className="text-[var(--text-muted)]">·</span>
                                 <span className="font-bold text-[var(--text-primary)]">
-                                  #{b.ballNumber} {b.contactOutcome}
+                                  {b.contactOutcome}
                                 </span>
                                 {b.shotType && (
-                                  <span className="ml-1 text-[10px] text-[var(--text-muted)]">
+                                  <span className="text-[10px] text-[var(--text-muted)]">
                                     · {b.shotType}
                                   </span>
                                 )}
                                 {b.isWicket && (
-                                  <span className="ml-1 rounded bg-rose-600 px-1.5 py-0.5 text-[9px] font-extrabold text-white">
-                                    W · {b.dismissalType ?? 'Out'}
+                                  <span className="rounded bg-rose-600 px-1.5 py-0.5 text-[9px] font-extrabold text-white">
+                                    {b.dismissalType ?? 'Out'}
                                   </span>
                                 )}
                                 {isBoundary && (
-                                  <span className="ml-1 text-[10px] font-bold text-amber-500">
+                                  <span className="text-[10px] font-bold text-amber-500">
                                     ({b.runs})
                                   </span>
                                 )}
@@ -1198,7 +1236,10 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                     <button
                       type="button"
                       disabled={!canScore || playerBalls.length === 0}
-                      onClick={() => onUndoLastBall(activeStation.id, activePlayerId)}
+                      onClick={() => {
+                        hapticWarning();
+                        onUndoLastBall(activeStation.id, activePlayerId);
+                      }}
                       className="ui-btn-danger flex-1 sm:flex-none"
                     >
                       <Undo2 className="h-4 w-4" />
@@ -1235,10 +1276,10 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
 
       {/* Add Late Player Modal */}
       {showLateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="ui-backdrop-enter fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
           <form
             onSubmit={handleSubmitLatePlayer}
-            className="ui-card w-full max-w-md space-y-4 p-5 shadow-xl"
+            className="ui-card ui-modal-enter w-full max-w-md space-y-4 p-5 shadow-xl"
           >
             <h3 className="text-base font-bold text-[var(--text-primary)]">Add Late Player</h3>
             <UiSelect
@@ -1279,10 +1320,10 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
 
       {/* Complete Player Modal */}
       {showCompleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="ui-backdrop-enter fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
           <form
             onSubmit={handleSubmitCompletion}
-            className="ui-card w-full max-w-md space-y-4 p-5 shadow-xl"
+            className="ui-card ui-modal-enter w-full max-w-md space-y-4 p-5 shadow-xl"
           >
             <div>
               <h3 className="text-base font-bold text-[var(--text-primary)]">

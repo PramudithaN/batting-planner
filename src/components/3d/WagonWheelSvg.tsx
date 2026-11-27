@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { WAGON_RUN_COLORS, type BallEvent } from '../../domain/types';
 import { disposeThreeGroup } from '../../lib/threeUtils';
+import { hapticTap } from '../../lib/haptics';
 import { SlcLoader } from '../ui/SlcLoader';
 
 interface WagonWheelSvgProps {
@@ -364,6 +365,7 @@ export const WagonWheelSvg: React.FC<WagonWheelSvgProps> = ({
         if (hits.length > 0) {
           const pt = hits[0].point;
           const { gx, gy } = toDomain(pt.x, pt.z);
+          hapticTap();
           onSelectRef.current(gx, gy);
         }
       } else if (!interactiveRef.current) {
@@ -372,6 +374,7 @@ export const WagonWheelSvg: React.FC<WagonWheelSvgProps> = ({
           const hitObj = hits[0].object;
           const ballId = hitObj.userData?.ballId as string | undefined;
           if (ballId) {
+            hapticTap();
             setInspectedBallId((prev) => (prev === ballId ? null : ballId));
           }
         }

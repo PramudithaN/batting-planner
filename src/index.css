@@ -39,6 +39,10 @@
   --accent-danger: #ef4444;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 html,
 body {
   overflow-x: hidden;
@@ -50,6 +54,7 @@ body {
   background-color: var(--bg-canvas);
   color: var(--text-primary);
   -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 @layer base {
@@ -113,12 +118,14 @@ body {
     border-radius: 0.75rem;
     border: 1px solid var(--border-subtle);
     background-color: var(--bg-surface);
+    transition: background-color 0.25s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   }
 
   .ui-card-elevated {
     border-radius: 0.75rem;
     border: 1px solid var(--border-subtle);
     background-color: var(--bg-elevated);
+    transition: background-color 0.25s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   }
 
   .ui-input,
@@ -173,10 +180,13 @@ body {
     padding: 0.5rem 1rem;
     font-size: 0.8125rem;
     font-weight: 600;
-    transition: background-color 0.15s ease;
+    transition: background-color 0.2s ease, transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
   }
   .ui-btn-primary:hover:not(:disabled) {
     background-color: var(--accent-primary-hover);
+  }
+  .ui-btn-primary:active:not(:disabled) {
+    transform: scale(0.97);
   }
   .ui-btn-primary:disabled {
     opacity: 0.45;
@@ -196,11 +206,14 @@ body {
     padding: 0.5rem 0.875rem;
     font-size: 0.8125rem;
     font-weight: 600;
-    transition: border-color 0.15s ease, background-color 0.15s ease;
+    transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.16s cubic-bezier(0.22, 1, 0.36, 1);
   }
   .ui-btn-secondary:hover:not(:disabled) {
     border-color: var(--accent-primary);
     background-color: var(--bg-elevated);
+  }
+  .ui-btn-secondary:active:not(:disabled) {
+    transform: scale(0.97);
   }
   .ui-btn-secondary:disabled {
     opacity: 0.45;
@@ -220,10 +233,13 @@ body {
     padding: 0.5rem 0.875rem;
     font-size: 0.8125rem;
     font-weight: 600;
-    transition: background-color 0.15s ease;
+    transition: background-color 0.2s ease, transform 0.16s cubic-bezier(0.22, 1, 0.36, 1);
   }
   .ui-btn-danger:hover:not(:disabled) {
     background-color: color-mix(in srgb, var(--accent-danger) 18%, transparent);
+  }
+  .ui-btn-danger:active:not(:disabled) {
+    transform: scale(0.97);
   }
   .ui-btn-danger:disabled {
     opacity: 0.45;
@@ -281,11 +297,31 @@ body {
 @keyframes ui-fade-slide-in {
   0% {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(10px) scale(0.995);
   }
   100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ui-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ui-modal-in {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -298,5 +334,26 @@ body {
 }
 
 .ui-view-enter {
-  animation: ui-fade-slide-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: ui-fade-slide-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.ui-backdrop-enter {
+  animation: ui-backdrop-in 0.2s ease-out forwards;
+}
+
+.ui-modal-enter {
+  animation: ui-modal-in 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

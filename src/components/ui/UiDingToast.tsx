@@ -22,7 +22,7 @@ export const UiDingToast: React.FC<UiDingToastProps> = ({ toasts, onDismiss }) =
   return (
     <div
       aria-live="polite"
-      className="pointer-events-none fixed bottom-5 left-1/2 z-50 flex w-full max-w-md -translate-x-1/2 flex-col-reverse items-center gap-2 px-4"
+      className="pointer-events-none fixed bottom-24 left-1/2 z-50 flex w-full max-w-md -translate-x-1/2 flex-col-reverse items-center gap-2 px-4 pb-[env(safe-area-inset-bottom)] lg:bottom-5 lg:pb-0"
     >
       {toasts.map((t, index) => {
         const isError = t.type === 'error';

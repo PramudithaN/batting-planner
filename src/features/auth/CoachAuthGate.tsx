@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Delete, ShieldCheck } from 'lucide-react';
 import type { CoachAccount } from '../../domain/types';
 import { SlcLionCrest } from '../../components/SlcLionCrest';
+import { hapticSuccess, hapticTap, hapticWarning } from '../../lib/haptics';
 
 interface CoachAuthGateProps {
   coaches: CoachAccount[];
@@ -37,16 +38,19 @@ export const CoachAuthGate: React.FC<CoachAuthGateProps> = ({ coaches, onSignIn 
       return;
     }
     if (nextPin !== coach.pin) {
+      hapticWarning();
       setError('Incorrect PIN. Try again.');
       setPin('');
       return;
     }
+    hapticSuccess();
     setError('');
     onSignIn(coach);
   };
 
   const handleDigit = (digit: string) => {
     if (pin.length >= 4) return;
+    hapticTap();
     setError('');
     const next = pin + digit;
     setPin(next);
@@ -56,6 +60,7 @@ export const CoachAuthGate: React.FC<CoachAuthGateProps> = ({ coaches, onSignIn 
   };
 
   const handleBackspace = () => {
+    hapticTap();
     setError('');
     setPin((prev) => prev.slice(0, -1));
   };

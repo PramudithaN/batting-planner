@@ -21,11 +21,11 @@ export const UiConfirmModal: React.FC<UiConfirmModalProps> = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+    <div className="ui-backdrop-enter fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
       <div
         role="dialog"
         aria-modal="true"
-        className="ui-card w-full max-w-md space-y-4 p-5 shadow-xl"
+        className="ui-card ui-modal-enter w-full max-w-md space-y-4 p-5 shadow-xl"
       >
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-rose-500/15 text-rose-500">

@@ -28,6 +28,7 @@ import type {
   StationConfig,
 } from './domain/types';
 import { isSupabaseConfigured } from './lib/env';
+import { hapticTap } from './lib/haptics';
 import {
   clearOfflineQueue,
   enqueueOfflineMutation,
@@ -386,24 +387,27 @@ export function App() {
         </div>
 
         <div className="border-b border-white/10">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-2.5 px-3 py-2.5 sm:px-4">
+          <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-3 px-3 py-2.5 sm:px-6 lg:py-3">
             {/* Brand */}
-            <div className="flex shrink-0 items-center gap-2.5">
-              <SlcLionCrest className="h-8 w-8 shrink-0 sm:h-9 sm:w-9" />
-              <div>
-                <h1 className="text-sm font-bold leading-tight tracking-tight text-white">
+            <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+              <SlcLionCrest className="h-8 w-8 shrink-0 sm:h-10 sm:w-10" />
+              <div className="min-w-0">
+                <h1 className="truncate text-sm font-bold leading-tight tracking-tight text-white sm:text-base">
                   Sri Lanka Cricket
                 </h1>
-                <p className="text-[11px] font-medium text-[#EAB308]">
-                  Batting Practice Planner · v{__APP_VERSION__}
+                <p className="truncate text-[10px] font-medium text-[#EAB308] sm:text-xs">
+                  <span className="sm:hidden">Batting Planner · v{__APP_VERSION__}</span>
+                  <span className="hidden sm:inline">
+                    Batting Practice Planner · v{__APP_VERSION__}
+                  </span>
                 </p>
               </div>
             </div>
 
-            {/* Navigation: Full-width clean 3-column bar on mobile/tablet, inline on lg+ desktop */}
+            {/* Desktop Navigation (lg+) — Mobile/Tablet uses the thumb-friendly bottom bar */}
             <nav
               aria-label="Planner sections"
-              className="order-last grid w-full grid-cols-3 gap-1 rounded-lg bg-[var(--bg-header-pill)] p-1 lg:order-none lg:flex lg:w-auto lg:items-center"
+              className="hidden items-center gap-1.5 rounded-xl bg-[var(--bg-header-pill)] p-1 lg:flex"
             >
               {(
                 [
@@ -432,18 +436,21 @@ export function App() {
                   <button
                     key={key}
                     type="button"
-                    onClick={() => setTab(key)}
-                    className={`inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-2 text-xs font-semibold transition-colors sm:px-3 ${
+                    onClick={() => {
+                      hapticTap();
+                      setTab(key);
+                    }}
+                    className={`inline-flex h-10 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 text-[13px] font-semibold transition-all active:scale-[0.98] ${
                       active
-                        ? 'bg-[#2563EB] text-white'
+                        ? 'bg-[#2563EB] text-white shadow-sm'
                         : 'text-slate-300 hover:bg-white/10 hover:text-white'
                     }`}
                   >
-                    <Icon className="h-3.5 w-3.5 shrink-0" />
-                    <span className="truncate">{label}</span>
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span>{label}</span>
                     {badge > 0 && (
                       <span
-                        className={`tabular-nums rounded px-1.5 py-0.5 text-[10px] font-bold leading-none ${
+                        className={`tabular-nums rounded-md px-1.5 py-0.5 text-[11px] font-bold leading-none ${
                           active ? 'bg-white/20 text-white' : 'bg-white/10 text-slate-300'
                         }`}
                       >
@@ -458,13 +465,14 @@ export function App() {
             {/* Right Controls */}
             <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
               <span
-                className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold ${
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-lg text-xs font-semibold sm:w-auto sm:gap-1.5 sm:px-3 lg:h-10 ${
                   isOnline
                     ? 'bg-emerald-500/15 text-emerald-300'
                     : 'bg-amber-500/15 text-amber-300'
                 }`}
+                title={isOnline ? (isSupabaseConfigured ? 'Live Sync' : 'Local Sync') : 'Offline'}
               >
-                {isOnline ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
+                {isOnline ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
                 <span className="hidden md:inline">
                   {isOnline ? (isSupabaseConfigured ? 'Live Sync' : 'Local Sync') : 'Offline'}
                 </span>
@@ -472,20 +480,26 @@ export function App() {
 
               <button
                 type="button"
-                onClick={resetGuideTips}
+                onClick={() => {
+                  hapticTap();
+                  resetGuideTips();
+                }}
                 aria-label="Show user guide tooltips"
                 title="Show first-time guide tooltips"
-                className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--bg-header-pill)] text-slate-200 hover:bg-white/10"
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg bg-[var(--bg-header-pill)] text-slate-200 transition-transform hover:bg-white/10 active:scale-95 lg:h-10 lg:w-10"
               >
                 <HelpCircle className="h-4 w-4" />
               </button>
 
               <button
                 type="button"
-                onClick={toggleTheme}
+                onClick={() => {
+                  hapticTap();
+                  toggleTheme();
+                }}
                 aria-label="Toggle light or dark theme"
                 title={theme === 'dark' ? 'Switch to Daylight Mode' : 'Switch to Floodlight Mode'}
-                className="flex h-8 w-8 items-center justify-center rounded-md bg-[var(--bg-header-pill)] text-slate-200 hover:bg-white/10"
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg bg-[var(--bg-header-pill)] text-slate-200 transition-transform hover:bg-white/10 active:scale-95 lg:h-10 lg:w-10"
               >
                 {theme === 'dark' ? (
                   <Sun className="h-4 w-4 text-[#EAB308]" />
@@ -494,16 +508,20 @@ export function App() {
                 )}
               </button>
 
-              <span className="hidden h-8 items-center rounded-md bg-[var(--bg-header-pill)] px-2.5 text-xs font-semibold text-slate-200 sm:inline-flex">
+              <span className="hidden h-10 items-center rounded-lg bg-[var(--bg-header-pill)] px-3 text-xs font-semibold text-slate-200 sm:inline-flex">
                 {currentCoach.name}
               </span>
 
               <button
                 type="button"
-                onClick={() => setShowLogoutConfirm(true)}
-                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-white/15 bg-[var(--bg-header-pill)] px-2.5 text-xs font-semibold text-slate-200 hover:border-white/30 hover:text-white"
+                onClick={() => {
+                  hapticTap();
+                  setShowLogoutConfirm(true);
+                }}
+                aria-label="Switch Coach"
+                className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-white/15 bg-[var(--bg-header-pill)] px-2.5 text-xs font-semibold text-slate-200 transition-all hover:border-white/30 hover:text-white active:scale-95 sm:px-3 lg:h-10 lg:px-3.5"
               >
-                <LogOut className="h-3.5 w-3.5" />
+                <LogOut className="h-4 w-4" />
                 <span className="hidden sm:inline">Switch</span>
               </button>
             </div>
@@ -527,7 +545,7 @@ export function App() {
       />
 
       {/* Main Content */}
-      <main key={tab} className="ui-view-enter mx-auto max-w-7xl p-4 sm:p-5">
+      <main key={tab} className="ui-view-enter mx-auto max-w-[1440px] p-4 pb-24 sm:p-5 lg:pb-6">
         {tab === 'setup' && (
           <DaySetupView
             day={day}
@@ -584,6 +602,69 @@ export function App() {
           />
         )}
       </main>
+
+      {/* Mobile / Tablet Floating Dock Navigation */}
+      <nav
+        aria-label="Mobile navigation"
+        className="pointer-events-none fixed inset-x-0 bottom-3.5 z-30 px-4 pb-[env(safe-area-inset-bottom)] lg:hidden"
+      >
+        <div className="pointer-events-auto relative mx-auto grid max-w-md grid-cols-3 gap-1.5 overflow-hidden rounded-full border border-white/15 bg-[var(--bg-header)]/95 p-1.5 shadow-[0_14px_38px_rgba(0,0,0,0.48)] backdrop-blur-xl">
+
+          {(
+            [
+              {
+                key: 'setup',
+                label: 'Day Setup',
+                icon: CalendarPlus,
+                badge: day.availablePlayerIds.length,
+              },
+              {
+                key: 'live',
+                label: 'Live Nets',
+                icon: Activity,
+                badge: day.stations.length,
+              },
+              {
+                key: 'reports',
+                label: 'Reports',
+                icon: BarChart3,
+                badge: activeBallsCount,
+              },
+            ] as const
+          ).map(({ key, label, icon: Icon, badge }) => {
+            const active = tab === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => {
+                  hapticTap();
+                  setTab(key);
+                }}
+                className={`relative flex h-12 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-full px-2 text-[11px] font-semibold transition-all duration-200 active:scale-95 ${
+                  active
+                    ? 'bg-gradient-to-b from-[#2563EB] to-[#1D4ED8] text-white shadow-md shadow-[#2563EB]/35 ring-1 ring-white/20'
+                    : 'text-slate-300 hover:bg-white/8 hover:text-white'
+                }`}
+              >
+                <Icon className="h-[19px] w-[19px] shrink-0" strokeWidth={active ? 2.4 : 1.9} />
+                <span className="leading-none tracking-tight">{label}</span>
+                {badge > 0 && (
+                  <span
+                    className={`tabular-nums absolute top-1.5 right-3 rounded-full px-1.5 py-0.5 text-[9px] font-extrabold leading-none ${
+                      active
+                        ? 'bg-[#FACC15] text-[#0B1F4D]'
+                        : 'bg-white/15 text-slate-200'
+                    }`}
+                  >
+                    {badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }
