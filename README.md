@@ -12,7 +12,7 @@ A mobile-first PWA for Sri Lanka Cricket batting practice planning, live ball-by
 - **Guided 2-Step Day Setup (`Day Setup`):**
   - Practice date selection and custom time-slot management.
   - Searchable 35-player squad pool with official headshots, custom guest player support, and 1-tap squad quick-select (`ODI`, `T20I`, `Test`, `Sri Lanka A`).
-  - Net station builder with 1-tap presets (`Pace Net`, `Spin Net`, `Throwdown`, `Center Wicket`), inline editing, and confirmation dialogs before deletion.
+  - Net station builder with 1-tap presets (`Pace Net`, `Spin Net`, `Center Wicket`), inline editing, and confirmation dialogs before deletion.
 - **Live Ball-by-Ball Scoring (`Live Nets`):**
   - Concurrent `(station, player)` locking with takeover support to prevent multi-coach overwrites.
   - 1-tap Pitch Map (`Length x Line`), sticky Bowling Style, categorized Shot Types, Runs, and Contact Outcomes with optional **1-Tap Save** mode.
@@ -39,8 +39,8 @@ A mobile-first PWA for Sri Lanka Cricket batting practice planning, live ball-by
 ## Getting Started
 
 ```bash
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 ### Build & GitHub Pages Deployment
@@ -48,9 +48,9 @@ npm run dev
 The production build outputs directly to the `docs/` folder for branch-based GitHub Pages hosting (`main` branch -> `/docs` folder, without GitHub Actions):
 
 ```bash
-npm run typecheck
-npm run build
-npm run preview
+bun run typecheck
+bun run build
+bun run preview
 ```
 
 ---

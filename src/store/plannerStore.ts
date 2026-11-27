@@ -178,18 +178,6 @@ export function acquireLock(
   return { day: saved, acquired: true };
 }
 
-export function releaseLock(
-  day: PracticeDay,
-  stationId: string,
-  playerId: string,
-  coachId: string
-): PracticeDay {
-  const filtered = day.locks.filter(
-    (l) => !(l.stationId === stationId && l.playerId === playerId && l.coachId === coachId)
-  );
-  return saveDay({ ...day, locks: filtered });
-}
-
 export function addOrUpdateStation(
   day: PracticeDay,
   station: StationConfig,

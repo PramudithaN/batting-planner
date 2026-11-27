@@ -139,27 +139,6 @@ export const SPIN_LENGTH_ZONES: readonly PitchLengthZone[] = [
   },
 ] as const;
 
-export const SHOT_TYPES = [
-  'Straight drive',
-  'Cover drive',
-  'Square drive',
-  'On drive',
-  'Off drive',
-  'Back-foot punch',
-  'Square cut',
-  'Late cut',
-  'Pull',
-  'Hook',
-  'Flick',
-  'Leg glance',
-  'Sweep',
-  'Reverse sweep',
-  'Paddle sweep',
-  'Slog sweep',
-  'Forward defence',
-  'Back-foot defence',
-] as const;
-
 export const SHOT_CATEGORIES: Record<'Front Foot' | 'Back Foot' | 'Sweep & Pull', readonly string[]> = {
   'Front Foot': [
     'Straight drive',
