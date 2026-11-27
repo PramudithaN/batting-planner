@@ -75,13 +75,6 @@ const STATION_PRESETS = [
     bowlingType: 'Net Bowlers',
   },
   {
-    label: 'Throwdown',
-    trainingType: 'Block',
-    netType: 'Indoor',
-    ballType: 'White Old Ball',
-    bowlingType: 'Throwdown',
-  },
-  {
     label: 'Center Wicket',
     trainingType: 'Situation',
     netType: 'Center wicket',

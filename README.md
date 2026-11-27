@@ -1,6 +1,6 @@
 # Sri Lanka Cricket: Batting Practice Planner
 
-A tablet- and mobile-first **Progressive Web App (PWA)** built for Sri Lanka Cricket High Performance batting practice planning, live ball-by-ball net scoring, interactive 3D wagon-wheel visualization, and match-grade Excel reporting.
+A mobile-first PWA for Sri Lanka Cricket batting practice planning, live ball-by-ball scoring, 3D wagon wheels, and Excel reports.
 
 **Live Deployment (GitHub Pages):** https://pramudithan.github.io/batting-planner/
 

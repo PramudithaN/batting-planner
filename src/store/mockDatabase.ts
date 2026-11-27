@@ -56,7 +56,7 @@ export function createMockPracticeDay(practiceDate: string): PracticeDay {
         trainingType: 'Block',
         netType: 'Center wicket',
         ballType: 'White Semi Ball',
-        bowlingType: 'Throwdown',
+        bowlingType: 'Net Bowlers',
         focus: 'Pull & back-foot punch',
         version: 1,
         updatedBy: 'Dhammika Sudarshana',

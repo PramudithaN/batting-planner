@@ -10,6 +10,8 @@ interface WagonWheelSvgProps {
   selectedY?: number;
   onSelectPoint?: (x: number, y: number) => void;
   balls?: BallEvent[];
+  stance?: 'RHB' | 'LHB';
+  onChangeStance?: (stance: 'RHB' | 'LHB') => void;
 }
 
 type CameraPreset = 'broadcast' | 'top' | 'low';
@@ -141,9 +143,16 @@ export const WagonWheelSvg: React.FC<WagonWheelSvgProps> = ({
   selectedY,
   onSelectPoint,
   balls = [],
+  stance: controlledStance,
+  onChangeStance,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
-  const [stance, setStance] = useState<'RHB' | 'LHB'>('RHB');
+  const [internalStance, setInternalStance] = useState<'RHB' | 'LHB'>('RHB');
+  const stance = controlledStance ?? internalStance;
+  const setStance = (next: 'RHB' | 'LHB') => {
+    if (onChangeStance) onChangeStance(next);
+    else setInternalStance(next);
+  };
   const [preset, setPreset] = useState<CameraPreset>('broadcast');
   const [inspectedBallId, setInspectedBallId] = useState<string | null>(null);
   const [runFilter, setRunFilter] = useState<string>('ALL');
@@ -265,6 +274,7 @@ export const WagonWheelSvg: React.FC<WagonWheelSvgProps> = ({
     });
     const turfMesh = new THREE.Mesh(turfGeo, turfMat);
     turfMesh.position.y = -0.08;
+    turfMesh.rotation.y = Math.PI / 2;
     turfMesh.receiveShadow = true;
     scene.add(turfMesh);
 
@@ -469,38 +479,42 @@ export const WagonWheelSvg: React.FC<WagonWheelSvgProps> = ({
       const isSelected = inspectedBallId === b.id;
       const isSix = b.runs === '6';
       const isFour = b.runs === '4';
+      const isBoundaryCurve = isSix || isFour;
 
-      const midX = (start.x + end.x) / 2;
-      const midZ = (start.z + end.z) / 2;
-      const dist = Math.hypot(end.x - start.x, end.z - start.z);
-      const arcPeak = isSix
-        ? Math.max(12, dist * 0.72)
-        : isFour
-          ? Math.max(6.5, dist * 0.38)
-          : b.runs === '2' || b.runs === '3'
-            ? Math.max(4.5, dist * 0.28)
-            : Math.max(3.2, dist * 0.22);
+      let pathCurve: THREE.Curve<THREE.Vector3>;
+      if (isBoundaryCurve) {
+        const midX = (start.x + end.x) / 2;
+        const midZ = (start.z + end.z) / 2;
+        const dist = Math.hypot(end.x - start.x, end.z - start.z);
+        const arcPeak = isSix ? Math.max(12, dist * 0.72) : Math.max(6.5, dist * 0.38);
 
-      // Ground shadow line so the 3D lift/curve is immediately visible
-      const shadowGeo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(start.x, 0.08, start.z),
-        new THREE.Vector3(end.x, 0.08, end.z),
-      ]);
-      const shadowMat = new THREE.LineBasicMaterial({
-        color: '#000000',
-        transparent: true,
-        opacity: 0.28,
-      });
-      shotsGroup.add(new THREE.Line(shadowGeo, shadowMat));
+        // Ground shadow line so the 3D lift/curve is immediately visible for 4s and 6s
+        const shadowGeo = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(start.x, 0.08, start.z),
+          new THREE.Vector3(end.x, 0.08, end.z),
+        ]);
+        const shadowMat = new THREE.LineBasicMaterial({
+          color: '#000000',
+          transparent: true,
+          opacity: 0.28,
+        });
+        shotsGroup.add(new THREE.Line(shadowGeo, shadowMat));
 
-      const curve = new THREE.QuadraticBezierCurve3(
-        new THREE.Vector3(start.x, 0.3, start.z),
-        new THREE.Vector3(midX, arcPeak, midZ),
-        new THREE.Vector3(end.x, 0.2, end.z)
-      );
+        pathCurve = new THREE.QuadraticBezierCurve3(
+          new THREE.Vector3(start.x, 0.3, start.z),
+          new THREE.Vector3(midX, arcPeak, midZ),
+          new THREE.Vector3(end.x, 0.2, end.z)
+        );
+      } else {
+        // Straight ground line for Dot, 1, 2, 3, and unrecorded runs
+        pathCurve = new THREE.LineCurve3(
+          new THREE.Vector3(start.x, 0.14, start.z),
+          new THREE.Vector3(end.x, 0.14, end.z)
+        );
+      }
 
-      const radius = isSelected ? 0.18 : isSix || isFour ? 0.13 : 0.09;
-      const tubeGeo = new THREE.TubeGeometry(curve, 24, radius, 8, false);
+      const radius = isSelected ? 0.18 : isBoundaryCurve ? 0.13 : 0.09;
+      const tubeGeo = new THREE.TubeGeometry(pathCurve, isBoundaryCurve ? 24 : 4, radius, 8, false);
       const tubeMat = new THREE.MeshStandardMaterial({
         color: hex,
         emissive: hex,

@@ -14,9 +14,6 @@ export const BALL_TYPES = [
 export const BOWLING_TYPES = [
   'National Bowlers',
   'Net Bowlers',
-  'Throwdown',
-  'Overarm',
-  'Machine',
 ] as const;
 
 export const BOWLING_STYLES = [
@@ -129,6 +126,7 @@ export interface Player {
   id: string;
   name: string;
   squads: string[];
+  battingHand?: 'RHB' | 'LHB';
   avatarUrl?: string;
   isCustom?: boolean;
 }

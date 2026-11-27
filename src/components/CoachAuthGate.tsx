@@ -92,7 +92,9 @@ export const CoachAuthGate: React.FC<CoachAuthGateProps> = ({ coaches, onSignIn 
               </p>
             </div>
           </div>
-          <span className="text-xs font-semibold text-slate-300">Coach Sign-In</span>
+          <span className="text-xs font-semibold text-slate-300">
+            Coach Sign-In · v{__APP_VERSION__}
+          </span>
         </div>
 
         <div className="grid gap-6 p-6 md:grid-cols-12">

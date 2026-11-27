@@ -4,6 +4,7 @@ import { LENGTHS, LINES } from '../domain/types';
 interface PitchMapSvgProps {
   selectedLine?: string;
   selectedLength?: string;
+  stance?: 'RHB' | 'LHB';
   onSelect: (line: string, length: string) => void;
 }
 
@@ -34,12 +35,19 @@ const LENGTH_ACCENT: Record<string, string> = {
 export const PitchMapSvg: React.FC<PitchMapSvgProps> = ({
   selectedLine,
   selectedLength,
+  stance = 'RHB',
   onSelect,
 }) => {
+  const isLhb = stance === 'LHB';
+  const orderedLines = isLhb ? [...LINES].reverse() : LINES;
+  const sideLabels = isLhb
+    ? ['Wide Leg', 'Leg', 'Middle', 'Off', 'Wide Off']
+    : ['Wide Off', 'Off', 'Middle', 'Leg', 'Wide Leg'];
+
   return (
     <div className="ui-card-elevated p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="ui-label mb-0">1-Tap Pitch Map</span>
+        <span className="ui-label mb-0">1-Tap Pitch Map ({stance})</span>
         <span className="rounded-md bg-[var(--bg-surface)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--accent-primary)] ring-1 ring-[var(--border-subtle)]">
           {selectedLength && selectedLine ? `${selectedLength} · ${selectedLine}` : 'Tap zone'}
         </span>
@@ -58,7 +66,7 @@ export const PitchMapSvg: React.FC<PitchMapSvgProps> = ({
 
       <div className="grid grid-cols-6 gap-1">
         {LENGTHS.map((length) =>
-          LINES.map((line) => {
+          orderedLines.map((line) => {
             const active = selectedLine === line && selectedLength === length;
             return (
               <button
@@ -80,11 +88,9 @@ export const PitchMapSvg: React.FC<PitchMapSvgProps> = ({
       </div>
 
       <div className="mt-2 flex justify-between px-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--text-muted)] sm:text-[10px]">
-        <span>Wide Off</span>
-        <span>Off</span>
-        <span>Middle</span>
-        <span>Leg</span>
-        <span>Wide Leg</span>
+        {sideLabels.map((lbl) => (
+          <span key={lbl}>{lbl}</span>
+        ))}
       </div>
     </div>
   );

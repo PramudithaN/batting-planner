@@ -54,9 +54,11 @@ export function loadPlayers(): Player[] {
     const parsed = JSON.parse(raw) as Player[];
     if (!Array.isArray(parsed) || parsed.length === 0) return [...INITIAL_PLAYER_POOL];
     const avatarMap = new Map(INITIAL_PLAYER_POOL.map((p) => [p.id, p.avatarUrl]));
+    const handMap = new Map(INITIAL_PLAYER_POOL.map((p) => [p.id, p.battingHand]));
     return parsed.map((p) => ({
       ...p,
       avatarUrl: avatarMap.has(p.id) ? avatarMap.get(p.id) : p.avatarUrl,
+      battingHand: handMap.has(p.id) ? (handMap.get(p.id) ?? 'RHB') : (p.battingHand ?? 'RHB'),
     }));
   } catch {
     return [...INITIAL_PLAYER_POOL];

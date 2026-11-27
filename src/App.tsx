@@ -16,6 +16,7 @@ import { LiveStationsView } from './components/LiveStationsView';
 import { PwaInstallBanner } from './components/PwaInstallBanner';
 import { ReportsView } from './components/ReportsView';
 import { SlcLionCrest } from './components/SlcLionCrest';
+import { UiConfirmModal } from './components/ui/UiConfirmModal';
 import { UiDingToast, type DingToastItem } from './components/ui/UiDingToast';
 import type {
   BallEvent,
@@ -72,6 +73,7 @@ export function App() {
   const [players, setPlayers] = useState<Player[]>(() => loadPlayers());
   const [day, setDay] = useState<PracticeDay>(() => loadDay(getTodayDateString()));
   const [isOnline, setIsOnline] = useState<boolean>(() => navigator.onLine);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [toasts, setToasts] = useState<DingToastItem[]>([]);
   const [dismissedTips, setDismissedTips] = useState<string[]>(() => {
     try {
@@ -393,7 +395,7 @@ export function App() {
                   Sri Lanka Cricket
                 </h1>
                 <p className="text-[11px] font-medium text-[#EAB308]">
-                  Batting Practice Planner
+                  Batting Practice Planner · v{__APP_VERSION__}
                 </p>
               </div>
             </div>
@@ -498,7 +500,7 @@ export function App() {
 
               <button
                 type="button"
-                onClick={handleSignOut}
+                onClick={() => setShowLogoutConfirm(true)}
                 className="inline-flex h-8 items-center gap-1.5 rounded-md border border-white/15 bg-[var(--bg-header-pill)] px-2.5 text-xs font-semibold text-slate-200 hover:border-white/30 hover:text-white"
               >
                 <LogOut className="h-3.5 w-3.5" />
@@ -511,6 +513,18 @@ export function App() {
 
       {/* Ding-style Spring-Physics Toast Stack */}
       <UiDingToast toasts={toasts} onDismiss={dismissToast} />
+
+      <UiConfirmModal
+        open={showLogoutConfirm}
+        title="Log out / Switch Coach?"
+        description={`You are currently signed in as ${currentCoach.name}. Are you sure you want to log out and switch accounts?`}
+        confirmLabel="Log Out"
+        onConfirm={() => {
+          setShowLogoutConfirm(false);
+          handleSignOut();
+        }}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
 
       {/* Main Content */}
       <main key={tab} className="ui-view-enter mx-auto max-w-7xl p-4 sm:p-5">

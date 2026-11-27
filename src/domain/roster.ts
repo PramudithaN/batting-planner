@@ -12,6 +12,7 @@ export const INITIAL_PLAYER_POOL: Player[] = [
     id: 'akila-dananjaya',
     name: 'Akila Dananjaya',
     squads: ['ODI'],
+    battingHand: 'LHB',
     avatarUrl: 'https://static.cricbuzz.com/a/img/v1/i1/c717699/akila-dananjaya.jpg?d=low&p=gthumb',
   },
   {
@@ -30,6 +31,7 @@ export const INITIAL_PLAYER_POOL: Player[] = [
     id: 'bhanuka-rajapaksa',
     name: 'Bhanuka Rajapaksa',
     squads: ['T20I'],
+    battingHand: 'LHB',
   },
   {
     id: 'chamika-karunaratne',
@@ -41,6 +43,7 @@ export const INITIAL_PLAYER_POOL: Player[] = [
     id: 'charith-asalanka',
     name: 'Charith Asalanka',
     squads: ['ODI', 'T20I'],
+    battingHand: 'LHB',
     avatarUrl: 'https://static.cricbuzz.com/a/img/v1/i1/c847180/charith-asalanka.jpg?d=low&p=gthumb',
   },
   {
@@ -58,6 +61,7 @@ export const INITIAL_PLAYER_POOL: Player[] = [
     id: 'dilshan-madushanka',
     name: 'Dilshan Madushanka',
     squads: ['ODI', 'T20I'],
+    battingHand: 'RHB',
   },
   {
     id: 'dinesh-chandimal',
@@ -69,6 +73,7 @@ export const INITIAL_PLAYER_POOL: Player[] = [
     id: 'dunith-wellalage',
     name: 'Dunith Wellalage',
     squads: ['ODI', 'T20I', 'Sri Lanka A'],
+    battingHand: 'LHB',
     avatarUrl: 'https://static.cricbuzz.com/a/img/v1/i1/c847184/dunith-wellalage.jpg?d=low&p=gthumb',
   },
   {
@@ -81,6 +86,7 @@ export const INITIAL_PLAYER_POOL: Player[] = [
     id: 'eshan-malinga',
     name: 'Eshan Malinga',
     squads: ['Sri Lanka A'],
+    battingHand: 'LHB',
   },
   {
     id: 'janith-liyanage',
@@ -92,12 +98,14 @@ export const INITIAL_PLAYER_POOL: Player[] = [
     id: 'kamindu-mendis',
     name: 'Kamindu Mendis',
     squads: ['Test', 'ODI', 'T20I'],
+    battingHand: 'LHB',
     avatarUrl: 'https://static.cricbuzz.com/a/img/v1/i1/c847173/kamindu-mendis.jpg?d=low&p=gthumb',
   },
   {
     id: 'kamil-mishara',
     name: 'Kamil Mishara',
     squads: ['Sri Lanka A'],
+    battingHand: 'LHB',
   },
   {
     id: 'kasun-rajitha',
@@ -115,11 +123,13 @@ export const INITIAL_PLAYER_POOL: Player[] = [
     id: 'kusal-perera',
     name: 'Kusal Perera',
     squads: ['ODI', 'T20I'],
+    battingHand: 'LHB',
   },
   {
     id: 'lahiru-kumara',
     name: 'Lahiru Kumara',
     squads: ['Test', 'ODI'],
+    battingHand: 'LHB',
     avatarUrl: 'https://static.cricbuzz.com/a/img/v1/i1/c351887/lahiru-kumara.jpg?d=low&p=gthumb',
   },
   {
@@ -144,6 +154,7 @@ export const INITIAL_PLAYER_POOL: Player[] = [
     id: 'milan-rathnayake',
     name: 'Milan Rathnayake',
     squads: ['Test', 'Sri Lanka A'],
+    battingHand: 'LHB',
     avatarUrl: 'https://static.cricbuzz.com/a/img/v1/i1/c717700/milan-priyanath-rathnayake.jpg?d=low&p=gthumb',
   },
   {
@@ -180,6 +191,7 @@ export const INITIAL_PLAYER_POOL: Player[] = [
     id: 'prabath-jayasuriya',
     name: 'Prabath Jayasuriya',
     squads: ['Test'],
+    battingHand: 'RHB',
     avatarUrl: 'https://static.cricbuzz.com/a/img/v1/i1/c582353/prabath-jayasuriya.jpg?d=low&p=gthumb',
   },
   {
@@ -197,6 +209,7 @@ export const INITIAL_PLAYER_POOL: Player[] = [
     id: 'sahan-arachchige',
     name: 'Sahan Arachchige',
     squads: ['Sri Lanka A'],
+    battingHand: 'LHB',
   },
   {
     id: 'vijayakanth-viyaskanth',

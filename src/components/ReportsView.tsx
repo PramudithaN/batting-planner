@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Activity,
   Award,
@@ -65,7 +65,17 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   const [filterStationId, setFilterStationId] = useState('all');
   const [filterPlayerId, setFilterPlayerId] = useState('all');
   const [filterStyle, setFilterStyle] = useState('all');
+  const [reportStance, setReportStance] = useState<'RHB' | 'LHB'>('RHB');
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (filterPlayerId === 'all') {
+      setReportStance('RHB');
+    } else {
+      const player = players.find((p) => p.id === filterPlayerId);
+      setReportStance(player?.battingHand ?? 'RHB');
+    }
+  }, [filterPlayerId, players]);
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const [isExporting, setIsExporting] = useState<'day' | 'player' | null>(null);
 
@@ -610,7 +620,11 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         {day.stations.length > 0 && (
           <div className="ui-card space-y-4 p-4 lg:col-span-5">
             <h3 className="text-sm font-bold text-[var(--text-primary)]">3D Wagon Wheel</h3>
-            <WagonWheelSvg balls={filteredBalls} />
+            <WagonWheelSvg
+              balls={filteredBalls}
+              stance={reportStance}
+              onChangeStance={setReportStance}
+            />
           </div>
         )}
 

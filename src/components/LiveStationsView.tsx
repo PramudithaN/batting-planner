@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -141,6 +141,13 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
 
   const activePlayerId = selectedPlayerId || availablePlayers[0]?.id || '';
   const activePlayer = players.find((p) => p.id === activePlayerId);
+  const [batterStance, setBatterStance] = useState<'RHB' | 'LHB'>(
+    activePlayer?.battingHand ?? 'RHB'
+  );
+
+  useEffect(() => {
+    setBatterStance(activePlayer?.battingHand ?? 'RHB');
+  }, [activePlayerId, activePlayer?.battingHand]);
 
   const playerBalls = useMemo(
     () =>
@@ -168,6 +175,9 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
 
   const isLockedByOther = Boolean(activeLock && activeLock.coachId !== currentCoach.id);
   const canScore = !isViewer && !completion && !isLockedByOther && Boolean(activeStation);
+  const isBowlerStation =
+    activeStation?.bowlingType === 'National Bowlers' ||
+    activeStation?.bowlingType === 'Net Bowlers';
 
   const handleOpenStation = (stationId: string) => {
     setActiveStationId(stationId);
@@ -192,7 +202,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
     const parsed = ballInputSchema.safeParse({
       stationId: activeStation.id,
       playerId: activePlayerId,
-      bowlingStyle,
+      bowlingStyle: isBowlerStation ? bowlingStyle : undefined,
       line,
       length,
       shotType,
@@ -214,7 +224,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
       coachId: currentCoach.id,
       coachName: currentCoach.name,
       ballNumber: playerBalls.length + 1,
-      bowlingStyle,
+      bowlingStyle: isBowlerStation ? bowlingStyle : undefined,
       line,
       length,
       shotType,
@@ -302,14 +312,20 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
     let totalRuns = 0;
     let fours = 0;
     let sixes = 0;
-    let solid = 0;
+    const outcomeCounts: Record<string, number> = {};
+    for (const co of CONTACT_OUTCOMES) {
+      outcomeCounts[co] = 0;
+    }
     for (const b of playerBalls) {
       const n = Number(b.runs);
       if (!Number.isNaN(n)) totalRuns += n;
       if (b.runs === '4') fours++;
       if (b.runs === '6') sixes++;
-      if (b.contactOutcome === 'Solid') solid++;
+      if (b.contactOutcome in outcomeCounts) {
+        outcomeCounts[b.contactOutcome]++;
+      }
     }
+    const solid = outcomeCounts['Solid'] ?? 0;
     const sr = playerBalls.length > 0 ? ((totalRuns / playerBalls.length) * 100).toFixed(1) : '0.0';
     return {
       totalRuns,
@@ -318,6 +334,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
       sixes,
       strikeRate: sr,
       solidPct: playerBalls.length > 0 ? Math.round((solid / playerBalls.length) * 100) : 0,
+      outcomeCounts,
     };
   }, [playerBalls]);
 
@@ -623,7 +640,11 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                 </p>
               )}
               <div className="max-w-md">
-                <WagonWheelSvg balls={playerBalls} />
+                <WagonWheelSvg
+                  balls={playerBalls}
+                  stance={batterStance}
+                  onChangeStance={setBatterStance}
+                />
               </div>
             </div>
           ) : (
@@ -634,6 +655,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                 <PitchMapSvg
                   selectedLine={line}
                   selectedLength={length}
+                  stance={batterStance}
                   onSelect={(ln, lg) => {
                     if (!canScore) return;
                     setLine(ln);
@@ -654,7 +676,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                 {showManualLineLength && (
                   <div className="ui-card-elevated space-y-2 p-2.5">
                     <div className="flex flex-wrap gap-1">
-                      {LINES.map((ln) => (
+                      {(batterStance === 'LHB' ? [...LINES].reverse() : LINES).map((ln) => (
                         <button
                           key={ln}
                           type="button"
@@ -741,13 +763,19 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                       interactive={canScore}
                       selectedX={shotX}
                       selectedY={shotY}
+                      stance={batterStance}
+                      onChangeStance={setBatterStance}
                       onSelectPoint={(x, y) => {
                         setShotX(x);
                         setShotY(y);
                       }}
                     />
                   ) : (
-                    <WagonWheelSvg balls={playerBalls} />
+                    <WagonWheelSvg
+                      balls={playerBalls}
+                      stance={batterStance}
+                      onChangeStance={setBatterStance}
+                    />
                   )}
                 </div>
               </div>
@@ -844,29 +872,50 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                         </p>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Sticky Bowling Style */}
-                  <div>
-                    <label className="ui-label">Bowling Style (Sticky)</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {BOWLING_STYLES.map((bs) => (
-                        <button
-                          key={bs}
-                          type="button"
-                          disabled={!canScore}
-                          onClick={() => setBowlingStyle(bowlingStyle === bs ? undefined : bs)}
-                          className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
-                            bowlingStyle === bs
-                              ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-white'
-                              : 'border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[var(--text-primary)]'
-                          }`}
-                        >
-                          {bs}
-                        </button>
-                      ))}
+                    {/* All Contact Outcomes Breakdown */}
+                    <div className="grid grid-cols-3 divide-x divide-y divide-[var(--border-subtle)] border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] text-center sm:grid-cols-6 sm:divide-y-0">
+                      {CONTACT_OUTCOMES.map((co) => {
+                        const count = batterStats.outcomeCounts[co] ?? 0;
+                        const shortLabel =
+                          co === 'Played and missed' ? 'Played & Miss' : co;
+                        return (
+                          <div key={co} className="px-1.5 py-1.5">
+                            <p className="truncate text-[9px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
+                              {shortLabel}
+                            </p>
+                            <p className="tabular-nums text-xs font-extrabold text-[var(--text-primary)]">
+                              {count}
+                            </p>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
+
+                  {/* Sticky Bowling Style (only for National / Net Bowlers) */}
+                  {isBowlerStation && (
+                    <div>
+                      <label className="ui-label">Bowling Style (Sticky)</label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {BOWLING_STYLES.map((bs) => (
+                          <button
+                            key={bs}
+                            type="button"
+                            disabled={!canScore}
+                            onClick={() => setBowlingStyle(bowlingStyle === bs ? undefined : bs)}
+                            className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                              bowlingStyle === bs
+                                ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-white'
+                                : 'border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[var(--text-primary)]'
+                            }`}
+                          >
+                            {bs}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Categorized Shot Type */}
                   <div>
