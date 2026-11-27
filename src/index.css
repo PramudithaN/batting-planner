@@ -297,11 +297,11 @@ body {
 @keyframes ui-fade-slide-in {
   0% {
     opacity: 0;
-    transform: translateY(10px) scale(0.995);
+    transform: translateY(10px);
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: none;
   }
 }
 
@@ -334,7 +334,7 @@ body {
 }
 
 .ui-view-enter {
-  animation: ui-fade-slide-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: ui-fade-slide-in 0.26s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .ui-backdrop-enter {
@@ -343,6 +343,22 @@ body {
 
 .ui-modal-enter {
   animation: ui-modal-in 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slc-dot-blink {
+  0%,
+  100% {
+    opacity: 0.32;
+    transform: translateY(0) scale(0.82);
+  }
+  45% {
+    opacity: 1;
+    transform: translateY(-6px) scale(1.15);
+  }
+}
+
+.slc-dot {
+  animation: slc-dot-blink 1.1s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

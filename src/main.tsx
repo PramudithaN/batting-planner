@@ -6,9 +6,44 @@ import './index.css';
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     if (import.meta.env.PROD) {
-      navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {
-        // Service worker registration is optional in non-HTTPS environments.
+      let hadController = Boolean(navigator.serviceWorker.controller);
+
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (hadController) {
+          window.dispatchEvent(new CustomEvent('slc-sw-update'));
+        }
+        hadController = true;
       });
+
+      navigator.serviceWorker
+        .register(`${import.meta.env.BASE_URL}sw.js`)
+        .then((reg) => {
+          if (reg.waiting && navigator.serviceWorker.controller) {
+            window.dispatchEvent(new CustomEvent('slc-sw-update'));
+          }
+          reg.addEventListener('updatefound', () => {
+            const installing = reg.installing;
+            if (!installing) return;
+            installing.addEventListener('statechange', () => {
+              if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+                window.dispatchEvent(new CustomEvent('slc-sw-update'));
+              }
+            });
+          });
+
+          // Check for updates when returning to the app or every 5 minutes
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+              reg.update().catch(() => {});
+            }
+          });
+          window.setInterval(() => {
+            reg.update().catch(() => {});
+          }, 5 * 60 * 1000);
+        })
+        .catch(() => {
+          // Service worker registration is optional in non-HTTPS environments.
+        });
     } else {
       // Unregister any stale service workers during local development so HMR stays clean.
       navigator.serviceWorker.getRegistrations().then((regs) => {

@@ -9,6 +9,7 @@ import {
   Search,
   Trash2,
   Users,
+  X,
 } from 'lucide-react';
 import { PLAYER_POOL_SOURCES } from '../../domain/roster';
 import {
@@ -236,38 +237,52 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
   return (
     <div className="mx-auto max-w-5xl space-y-4">
       {/* Clean Header + Guided Step Switcher */}
-      <div className="ui-card flex flex-wrap items-center justify-between gap-3 p-4">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="ui-card space-y-3 p-3.5 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3 sm:space-y-0 sm:p-4">
+        <div className="flex items-center justify-between gap-2 sm:justify-start sm:gap-3">
           <UiDatePicker value={day.practiceDate} onChange={onChangeDate} />
+          {day.stations.length > 0 && (
+            <button
+              type="button"
+              onClick={onGoToLive}
+              className="ui-btn-primary sm:hidden"
+            >
+              <span>Live Nets ({day.stations.length})</span>
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          )}
+        </div>
 
-          <div className="inline-flex rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-1 text-xs font-semibold">
-            <button
-              type="button"
-              onClick={() => setSection('players')}
-              className={`rounded-md px-3 py-1.5 transition-colors ${
-                section === 'players'
-                  ? 'bg-[var(--accent-primary)] text-white'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              1. Players & Schedule ({day.availablePlayerIds.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setSection('stations')}
-              className={`rounded-md px-3 py-1.5 transition-colors ${
-                section === 'stations'
-                  ? 'bg-[var(--accent-primary)] text-white'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              2. Net Stations ({day.stations.length})
-            </button>
-          </div>
+        <div className="grid w-full grid-cols-2 gap-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-1 text-xs font-semibold sm:inline-flex sm:w-auto">
+          <button
+            type="button"
+            onClick={() => setSection('players')}
+            className={`rounded-md px-2.5 py-2 text-center transition-colors sm:px-3 sm:py-1.5 ${
+              section === 'players'
+                ? 'bg-[var(--accent-primary)] text-white shadow-xs'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            <span className="sm:hidden">1. Players ({day.availablePlayerIds.length})</span>
+            <span className="hidden sm:inline">
+              1. Players &amp; Schedule ({day.availablePlayerIds.length})
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSection('stations')}
+            className={`rounded-md px-2.5 py-2 text-center transition-colors sm:px-3 sm:py-1.5 ${
+              section === 'stations'
+                ? 'bg-[var(--accent-primary)] text-white shadow-xs'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            <span className="sm:hidden">2. Stations ({day.stations.length})</span>
+            <span className="hidden sm:inline">2. Net Stations ({day.stations.length})</span>
+          </button>
         </div>
 
         {day.stations.length > 0 && (
-          <button type="button" onClick={onGoToLive} className="ui-btn-primary">
+          <button type="button" onClick={onGoToLive} className="ui-btn-primary hidden sm:inline-flex">
             <span>Go to Live Nets ({day.stations.length})</span>
             <ArrowRight className="h-4 w-4" />
           </button>
@@ -277,25 +292,12 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
       {section === 'players' ? (
         <div key="players-step" className="ui-view-enter space-y-4">
           {/* Compact Time Slots Card */}
-          <div className="ui-card p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 text-sm font-bold text-[var(--text-primary)]">
-                  <Clock className="h-4 w-4 text-[var(--accent-primary)]" />
-                  Time Slots:
-                </span>
-                {day.sessions.map((s) => (
-                  <span
-                    key={s.id}
-                    className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2.5 py-1 text-xs font-medium text-[var(--text-primary)]"
-                  >
-                    <strong>{s.name}</strong> ·{' '}
-                    <span className="tabular-nums text-[var(--text-muted)]">
-                      {s.startTime}–{s.endTime}
-                    </span>
-                  </span>
-                ))}
-              </div>
+          <div className="ui-card space-y-2.5 p-3.5 sm:p-4">
+            <div className="flex items-center justify-between gap-2">
+              <span className="inline-flex items-center gap-1.5 text-sm font-bold text-[var(--text-primary)]">
+                <Clock className="h-4 w-4 text-[var(--accent-primary)]" />
+                Time Slots
+              </span>
 
               {!isViewer && (
                 <div className="relative">
@@ -305,11 +307,15 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
                       onDismissTip('setup-slots');
                       setShowAddSlot((v) => !v);
                     }}
-                    className={`ui-btn-secondary min-h-[34px] px-3 py-1 text-xs ${
+                    className={`ui-btn-secondary min-h-[36px] px-3 py-1 text-xs ${
                       isTipVisible('setup-slots') ? 'ring-2 ring-[#2563EB] ring-offset-2' : ''
                     }`}
                   >
-                    <Plus className="h-3.5 w-3.5" />
+                    {showAddSlot ? (
+                      <X className="h-3.5 w-3.5" />
+                    ) : (
+                      <Plus className="h-3.5 w-3.5" />
+                    )}
                     <span>{showAddSlot ? 'Close' : 'Add Slot'}</span>
                   </button>
                   <UiGuideTip
@@ -325,29 +331,43 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
               )}
             </div>
 
+            <div className="flex flex-wrap items-center gap-1.5">
+              {day.sessions.map((s) => (
+                <span
+                  key={s.id}
+                  className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2.5 py-1 text-xs font-medium text-[var(--text-primary)]"
+                >
+                  <strong>{s.name}</strong> ·{' '}
+                  <span className="tabular-nums text-[var(--text-muted)]">
+                    {s.startTime}–{s.endTime}
+                  </span>
+                </span>
+              ))}
+            </div>
+
             {showAddSlot && !isViewer && (
-              <div className="mt-3 grid gap-2 border-t border-[var(--border-subtle)] pt-3 sm:grid-cols-12">
+              <div className="ui-view-enter mt-3 grid grid-cols-2 gap-2 border-t border-[var(--border-subtle)] pt-3 sm:grid-cols-12">
                 <input
                   type="text"
                   placeholder="Slot name (e.g. Afternoon Spin)"
                   value={newSessionName}
                   onChange={(e) => setNewSessionName(e.target.value)}
-                  className="ui-input sm:col-span-5"
+                  className="ui-input col-span-2 sm:col-span-5"
                 />
                 <UiTimePicker
                   value={newSessionStart}
                   onChange={setNewSessionStart}
-                  className="sm:col-span-3"
+                  className="col-span-1 sm:col-span-3"
                 />
                 <UiTimePicker
                   value={newSessionEnd}
                   onChange={setNewSessionEnd}
-                  className="sm:col-span-3"
+                  className="col-span-1 sm:col-span-3"
                 />
                 <button
                   type="button"
                   onClick={handleAddSession}
-                  className="ui-btn-primary sm:col-span-1"
+                  className="ui-btn-primary col-span-2 sm:col-span-1"
                 >
                   Save
                 </button>
@@ -356,20 +376,22 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
           </div>
 
           {/* Spacious Player Selection Card */}
-          <div className="ui-card space-y-4 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-[var(--accent-primary)]" />
-                <h3 className="text-sm font-bold text-[var(--text-primary)]">
-                  Select Available Players
-                </h3>
+          <div className="ui-card space-y-3.5 p-3.5 sm:space-y-4 sm:p-4">
+            <div className="space-y-2.5 lg:flex lg:items-center lg:justify-between lg:space-y-0">
+              <div className="flex items-center justify-between gap-2 lg:justify-start">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-[var(--accent-primary)]" />
+                  <h3 className="text-sm font-bold text-[var(--text-primary)]">
+                    Select Available Players
+                  </h3>
+                </div>
                 <span className="tabular-nums rounded-md bg-[var(--accent-primary)]/15 px-2 py-0.5 text-xs font-bold text-[var(--accent-primary)]">
                   {day.availablePlayerIds.length} selected
                 </span>
               </div>
 
               {!isViewer && (
-                <div className="relative flex flex-wrap items-center gap-1.5">
+                <div className="relative grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:items-center">
                   {(['ODI', 'T20I', 'Test', 'Sri Lanka A', 'ALL', 'CLEAR'] as const).map((sq) => (
                     <button
                       key={sq}
@@ -380,8 +402,8 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
                       }}
                       className={`${
                         sq === 'CLEAR'
-                          ? 'ui-btn-danger min-h-[32px] px-2.5 py-1 text-xs'
-                          : 'ui-btn-secondary min-h-[32px] px-2.5 py-1 text-xs'
+                          ? 'ui-btn-danger min-h-[36px] px-2.5 py-1 text-xs'
+                          : 'ui-btn-secondary min-h-[36px] px-2.5 py-1 text-xs'
                       } ${
                         !isTipVisible('setup-slots') && isTipVisible('setup-players') && sq === 'ODI'
                           ? 'ring-2 ring-[#2563EB] ring-offset-2'
@@ -404,8 +426,8 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative flex-1 min-w-[220px]">
+            <div className="flex items-center gap-2">
+              <div className="relative min-w-0 flex-1">
                 <Search className="pointer-events-none absolute top-3 left-3 h-4 w-4 text-[var(--text-muted)]" />
                 <input
                   type="search"
@@ -420,10 +442,11 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowAddPlayerInput(true)}
-                  className="ui-btn-secondary"
+                  className="ui-btn-secondary shrink-0 px-3"
                 >
                   <Plus className="h-4 w-4" />
-                  <span>Add Guest Player</span>
+                  <span className="sm:hidden">Guest</span>
+                  <span className="hidden sm:inline">Add Guest Player</span>
                 </button>
               )}
             </div>

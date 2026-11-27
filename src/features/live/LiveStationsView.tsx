@@ -437,28 +437,47 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
     <div className="space-y-4">
       {/* Top Controls */}
       {!activeStation && (
-        <div className="ui-card flex flex-wrap items-center justify-between gap-3 p-4">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="ui-card space-y-2.5 p-3.5 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3 sm:space-y-0 sm:p-4">
+          <div className="flex items-center justify-between gap-2 sm:justify-start">
             <UiDatePicker value={day.practiceDate} onChange={onChangeDate} />
-            <button type="button" onClick={onRefresh} className="ui-btn-secondary">
+            <button
+              type="button"
+              onClick={() => {
+                hapticTap();
+                onRefresh();
+              }}
+              className="ui-btn-secondary shrink-0"
+            >
               <RefreshCw className="h-4 w-4" />
               <span>Refresh</span>
             </button>
           </div>
 
           {!isViewer && (
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
               <button
                 type="button"
-                onClick={() => setShowLateModal(true)}
-                className="ui-btn-secondary"
+                onClick={() => {
+                  hapticTap();
+                  setShowLateModal(true);
+                }}
+                className="ui-btn-secondary px-2.5 sm:px-3.5"
               >
-                <Plus className="h-4 w-4" />
-                <span>Add Late Player</span>
+                <Plus className="h-4 w-4 shrink-0" />
+                <span className="truncate sm:hidden">Late Player</span>
+                <span className="hidden sm:inline">Add Late Player</span>
               </button>
-              <button type="button" onClick={onGoToSetup} className="ui-btn-primary">
-                <Plus className="h-4 w-4" />
-                <span>Add Stations</span>
+              <button
+                type="button"
+                onClick={() => {
+                  hapticTap();
+                  onGoToSetup();
+                }}
+                className="ui-btn-primary px-2.5 sm:px-4"
+              >
+                <Plus className="h-4 w-4 shrink-0" />
+                <span className="truncate sm:hidden">Add Stations</span>
+                <span className="hidden sm:inline">Add Stations</span>
               </button>
             </div>
           )}
@@ -509,8 +528,11 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                       <button
                         key={st.id}
                         type="button"
-                        onClick={() => handleOpenStation(st.id)}
-                        className="ui-card group flex flex-col justify-between p-4 text-left transition-colors hover:border-[var(--accent-primary)]"
+                        onClick={() => {
+                          hapticTap();
+                          handleOpenStation(st.id);
+                        }}
+                        className="ui-card group flex flex-col justify-between p-3.5 text-left transition-all hover:border-[var(--accent-primary)] active:scale-[0.99] sm:p-4"
                       >
                         <div className="w-full">
                           <div className="flex items-center justify-between">
@@ -565,7 +587,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                           )}
                         </div>
 
-                        <div className="mt-4 flex w-full items-center justify-between border-t border-[var(--border-subtle)] pt-3 text-xs font-semibold text-[var(--accent-primary)]">
+                        <div className="mt-3 flex w-full items-center justify-between border-t border-[var(--border-subtle)] pt-2.5 text-xs font-semibold text-[var(--accent-primary)]">
                           <span>Open scoring cockpit</span>
                           <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                         </div>
@@ -1279,7 +1301,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
         <div className="ui-backdrop-enter fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
           <form
             onSubmit={handleSubmitLatePlayer}
-            className="ui-card ui-modal-enter w-full max-w-md space-y-4 p-5 shadow-xl"
+            className="ui-card ui-modal-enter max-h-[90dvh] w-full max-w-md space-y-4 overflow-y-auto p-5 shadow-xl"
           >
             <h3 className="text-base font-bold text-[var(--text-primary)]">Add Late Player</h3>
             <UiSelect
@@ -1323,7 +1345,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
         <div className="ui-backdrop-enter fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
           <form
             onSubmit={handleSubmitCompletion}
-            className="ui-card ui-modal-enter w-full max-w-md space-y-4 p-5 shadow-xl"
+            className="ui-card ui-modal-enter max-h-[90dvh] w-full max-w-md space-y-4 overflow-y-auto p-5 shadow-xl"
           >
             <div>
               <h3 className="text-base font-bold text-[var(--text-primary)]">

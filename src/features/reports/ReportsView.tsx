@@ -331,16 +331,16 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       <SlcTopProgressBar active={Boolean(isExporting)} />
 
       {/* Top Controls & Report Downloads */}
-      <div className="ui-card flex flex-wrap items-center justify-between gap-3 p-4">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="ui-card space-y-2.5 p-3.5 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:gap-3 sm:space-y-0 sm:p-4">
+        <div className="flex items-center justify-between gap-2 sm:justify-start">
           <UiDatePicker value={day.practiceDate} onChange={onChangeDate} />
-          <button type="button" onClick={onRefresh} className="ui-btn-secondary">
+          <button type="button" onClick={onRefresh} className="ui-btn-secondary shrink-0">
             <RefreshCw className="h-4 w-4" />
             <span>Refresh</span>
           </button>
         </div>
 
-        <div className="relative flex flex-wrap gap-2">
+        <div className="relative grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           <button
             type="button"
             disabled={Boolean(isExporting)}
@@ -348,29 +348,37 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
               onDismissTip('reports-dashboard');
               handleExportDay();
             }}
-            className={`ui-btn-primary ${
+            className={`ui-btn-primary px-2.5 sm:px-4 ${
               isTipVisible('reports-dashboard') ? 'ring-2 ring-[#2563EB] ring-offset-2' : ''
             }`}
           >
             {isExporting === 'day' ? (
               <SlcLoader size="sm" />
             ) : (
-              <Download className="h-4 w-4" />
+              <Download className="h-4 w-4 shrink-0" />
             )}
-            <span>{isExporting === 'day' ? 'Generating...' : 'Download Day Report (.xlsx)'}</span>
+            <span className="truncate sm:hidden">
+              {isExporting === 'day' ? 'Generating...' : 'Day (.xlsx)'}
+            </span>
+            <span className="hidden sm:inline">
+              {isExporting === 'day' ? 'Generating...' : 'Download Day Report (.xlsx)'}
+            </span>
           </button>
           <button
             type="button"
             disabled={Boolean(isExporting)}
             onClick={handleExportPlayer}
-            className="ui-btn-secondary"
+            className="ui-btn-secondary px-2.5 sm:px-3.5"
           >
             {isExporting === 'player' ? (
               <SlcLoader size="sm" />
             ) : (
-              <Download className="h-4 w-4" />
+              <Download className="h-4 w-4 shrink-0" />
             )}
-            <span>
+            <span className="truncate sm:hidden">
+              {isExporting === 'player' ? 'Generating...' : 'Player (.xlsx)'}
+            </span>
+            <span className="hidden sm:inline">
               {isExporting === 'player' ? 'Generating...' : 'Download Player History (.xlsx)'}
             </span>
           </button>

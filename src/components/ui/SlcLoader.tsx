@@ -7,37 +7,38 @@ interface SlcLoaderProps {
 }
 
 /**
- * Sri Lanka Cricket themed loader with Maroon (#881337), Royal Blue (#1D4ED8), and Gold/Yellow (#EAB308) stripes.
+ * Sri Lanka Cricket themed loader with 3 smooth blinking dots
+ * in Maroon (#881337), Royal Blue (#1D4ED8), and Gold (#EAB308).
  */
 export const SlcLoader: React.FC<SlcLoaderProps> = ({
   label,
   size = 'md',
   className = '',
 }) => {
-  const barWidth = size === 'sm' ? 'w-16' : size === 'lg' ? 'w-40' : 'w-28';
-  const barHeight = size === 'sm' ? 'h-1' : size === 'lg' ? 'h-2' : 'h-1.5';
+  const dotSize =
+    size === 'sm' ? 'h-2 w-2' : size === 'lg' ? 'h-3.5 w-3.5' : 'h-2.5 w-2.5';
+  const gap = size === 'sm' ? 'gap-1.5' : size === 'lg' ? 'gap-2.5' : 'gap-2';
 
   return (
     <div
       role="status"
       aria-live="polite"
-      className={`inline-flex flex-col items-center justify-center gap-2 ${className}`}
+      className={`inline-flex flex-col items-center justify-center gap-2.5 ${className}`}
     >
-      {/* Animated 3-Stripe Sri Lanka Bar (Maroon, Blue, Yellow) */}
-      <div
-        className={`relative overflow-hidden rounded-full bg-black/15 dark:bg-white/10 ${barWidth} ${barHeight}`}
-      >
-        <div className="flex h-full w-full animate-pulse">
-          <div className="h-full w-1/3 bg-[#881337]" />
-          <div className="h-full w-1/3 bg-[#1D4ED8]" />
-          <div className="h-full w-1/3 bg-[#EAB308]" />
-        </div>
+      <div className={`flex items-center ${gap}`}>
+        <span
+          className={`slc-dot rounded-full bg-[#881337] ${dotSize}`}
+          style={{ animationDelay: '0ms' }}
+        />
+        <span
+          className={`slc-dot rounded-full bg-[#1D4ED8] ${dotSize}`}
+          style={{ animationDelay: '160ms' }}
+        />
+        <span
+          className={`slc-dot rounded-full bg-[#EAB308] ${dotSize}`}
+          style={{ animationDelay: '320ms' }}
+        />
       </div>
-
-      {/* Tri-color Spinning Ring */}
-      {size !== 'sm' && (
-        <div className="relative h-7 w-7 animate-spin rounded-full border-[3px] border-transparent border-t-[#881337] border-r-[#1D4ED8] border-b-[#EAB308]" />
-      )}
 
       {label && (
         <span className="text-xs font-semibold tracking-wide text-[var(--text-secondary)]">

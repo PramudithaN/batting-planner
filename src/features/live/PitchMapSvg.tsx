@@ -9,6 +9,7 @@ import {
 } from '../../domain/types';
 import { disposeThreeGroup } from '../../lib/threeUtils';
 import { hapticTap } from '../../lib/haptics';
+import { SlcLoader } from '../../components/ui/SlcLoader';
 
 interface PitchMapSvgProps {
   selectedLine?: string;
@@ -212,6 +213,7 @@ export const PitchMapSvg: React.FC<PitchMapSvgProps> = ({
   const mountRef = useRef<HTMLDivElement>(null);
   const [manualMode, setManualMode] = useState<'pace' | 'spin' | null>(null);
   const [lastTapWorld, setLastTapWorld] = useState<{ x: number; z: number } | null>(null);
+  const [isSceneReady, setIsSceneReady] = useState(false);
 
   const activeMode = manualMode ?? propBowlingMode ?? 'pace';
   const zones = activeMode === 'spin' ? SPIN_LENGTH_ZONES : PACE_LENGTH_ZONES;
@@ -346,9 +348,14 @@ export const PitchMapSvg: React.FC<PitchMapSvgProps> = ({
     resizeObserver.observe(container);
 
     let animId = 0;
+    let firstFrame = true;
     const animate = () => {
       animId = requestAnimationFrame(animate);
       renderer.render(scene, camera);
+      if (firstFrame) {
+        firstFrame = false;
+        setIsSceneReady(true);
+      }
     };
     animate();
 
@@ -494,7 +501,12 @@ export const PitchMapSvg: React.FC<PitchMapSvgProps> = ({
       </div>
 
       {/* 3D Broadcast WebGL Pitch */}
-      <div className="overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[#0B1F13]">
+      <div className="relative overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[#0B1F13]">
+        {!isSceneReady && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#0B1F13]">
+            <SlcLoader label="Loading 3D Pitch..." />
+          </div>
+        )}
         <div ref={mountRef} className="h-[260px] w-full cursor-crosshair sm:h-[290px]" />
 
         {/* Broadcast Legend Bar */}
