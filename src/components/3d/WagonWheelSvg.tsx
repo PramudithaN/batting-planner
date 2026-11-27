@@ -384,14 +384,34 @@ export const WagonWheelSvg: React.FC<WagonWheelSvgProps> = ({
     renderer.domElement.addEventListener('pointerdown', onPointerDown);
     renderer.domElement.addEventListener('pointerup', onPointerUp);
 
+    // Track container size for responsive resize & vertical centering viewOffset
+    let viewW = width;
+    let viewH = height;
+    let lastOffsetY = -1;
+
+    const updateCenteredViewOffset = (force = false) => {
+      const polar = controls.getPolarAngle(); // 0 = top-down, PI/2 = horizon
+      const desiredOffsetY = Math.round(viewH * 0.105 * Math.sin(polar));
+      if (!force && Math.abs(desiredOffsetY - lastOffsetY) < 1) return;
+      lastOffsetY = desiredOffsetY;
+      if (desiredOffsetY === 0) {
+        camera.clearViewOffset();
+      } else {
+        camera.setViewOffset(viewW, viewH, 0, desiredOffsetY, viewW, viewH);
+      }
+    };
+
     // ResizeObserver for responsive container
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const w = entry.contentRect.width;
         const h = entry.contentRect.height;
         if (w > 0 && h > 0) {
+          viewW = w;
+          viewH = h;
           camera.aspect = w / h;
           camera.updateProjectionMatrix();
+          updateCenteredViewOffset(true);
           renderer.setSize(w, h);
         }
       }
@@ -411,6 +431,7 @@ export const WagonWheelSvg: React.FC<WagonWheelSvgProps> = ({
         }
       }
       controls.update();
+      updateCenteredViewOffset();
       renderer.render(scene, camera);
       if (firstFrame) {
         firstFrame = false;
