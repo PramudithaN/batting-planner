@@ -41,6 +41,7 @@
 
 html {
   scroll-behavior: smooth;
+  scrollbar-gutter: stable;
 }
 
 html,
@@ -296,8 +297,8 @@ body {
 
 @keyframes ui-fade-slide-in {
   0% {
-    opacity: 0;
-    transform: translateY(10px);
+    opacity: 0.72;
+    transform: translate3d(0, 6px, 0);
   }
   100% {
     opacity: 1;
@@ -335,6 +336,22 @@ body {
 
 .ui-view-enter {
   animation: ui-fade-slide-in 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes ui-player-switch-in {
+  0% {
+    opacity: 0.65;
+    transform: translate3d(10px, 0, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.ui-player-switch {
+  animation: ui-player-switch-in 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
 }
 
 .ui-backdrop-enter {

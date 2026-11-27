@@ -339,7 +339,7 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
                 >
                   <strong>{s.name}</strong> ·{' '}
                   <span className="tabular-nums text-[var(--text-muted)]">
-                    {s.startTime}–{s.endTime}
+                    {s.startTime}-{s.endTime}
                   </span>
                 </span>
               ))}
@@ -376,22 +376,22 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
           </div>
 
           {/* Spacious Player Selection Card */}
-          <div className="ui-card space-y-3.5 p-3.5 sm:space-y-4 sm:p-4">
-            <div className="space-y-2.5 lg:flex lg:items-center lg:justify-between lg:space-y-0">
+          <div className="ui-card space-y-4 p-4">
+            <div className="space-y-3 lg:flex lg:items-center lg:justify-between lg:space-y-0">
               <div className="flex items-center justify-between gap-2 lg:justify-start">
                 <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-[var(--accent-primary)]" />
+                  <Users className="h-4 w-4 shrink-0 text-[var(--accent-primary)]" />
                   <h3 className="text-sm font-bold text-[var(--text-primary)]">
                     Select Available Players
                   </h3>
                 </div>
-                <span className="tabular-nums rounded-md bg-[var(--accent-primary)]/15 px-2 py-0.5 text-xs font-bold text-[var(--accent-primary)]">
+                <span className="tabular-nums whitespace-nowrap rounded-md bg-[var(--accent-primary)]/15 px-2.5 py-0.5 text-xs font-bold text-[var(--accent-primary)]">
                   {day.availablePlayerIds.length} selected
                 </span>
               </div>
 
               {!isViewer && (
-                <div className="relative grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:items-center">
+                <div className="relative grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center">
                   {(['ODI', 'T20I', 'Test', 'Sri Lanka A', 'ALL', 'CLEAR'] as const).map((sq) => (
                     <button
                       key={sq}
@@ -402,8 +402,8 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
                       }}
                       className={`${
                         sq === 'CLEAR'
-                          ? 'ui-btn-danger min-h-[36px] px-2.5 py-1 text-xs'
-                          : 'ui-btn-secondary min-h-[36px] px-2.5 py-1 text-xs'
+                          ? 'ui-btn-danger min-h-[38px] px-2.5 py-1.5 text-xs'
+                          : 'ui-btn-secondary min-h-[38px] px-2.5 py-1.5 text-xs'
                       } ${
                         !isTipVisible('setup-slots') && isTipVisible('setup-players') && sq === 'ODI'
                           ? 'ring-2 ring-[#2563EB] ring-offset-2'
@@ -476,7 +476,7 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
               </form>
             )}
 
-            <div className="grid max-h-[360px] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid max-h-[300px] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:max-h-[400px] lg:grid-cols-3">
               {filteredPlayers.map((p) => {
                 const checked = day.availablePlayerIds.includes(p.id);
                 return (
@@ -581,26 +581,26 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
                             Station {st.stationNumber}
                           </span>
                           <p className="text-[11px] text-[var(--text-muted)]">
-                            {st.sessionName} · {st.startTime}–{st.endTime}
+                            {st.sessionName} · {st.startTime}-{st.endTime}
                           </p>
                         </div>
                         {!isViewer && (
-                          <div className="flex gap-1">
+                          <div className="flex gap-2.5">
                             <button
                               type="button"
                               onClick={() => setEditingStationId(isEditing ? null : st.id)}
-                              className="ui-btn-secondary min-h-[30px] px-2 py-1"
+                              className="ui-btn-secondary min-h-[38px] min-w-[38px] px-2.5 py-1"
                               title="Edit station"
                             >
-                              <Edit3 className="h-3.5 w-3.5" />
+                              <Edit3 className="h-4 w-4" />
                             </button>
                             <button
                               type="button"
                               onClick={() => setPendingDeleteStation(st)}
-                              className="ui-btn-danger min-h-[30px] px-2 py-1"
+                              className="ui-btn-danger min-h-[38px] min-w-[38px] px-2.5 py-1"
                               title="Delete station"
                             >
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <Trash2 className="h-4 w-4" />
                             </button>
                           </div>
                         )}
@@ -720,7 +720,7 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
                         onChange={(val) => updateDraft(d.key, { sessionId: val })}
                         options={day.sessions.map((s) => ({
                           value: s.id,
-                          label: `${s.name} (${s.startTime}–${s.endTime})`,
+                          label: `${s.name} (${s.startTime}-${s.endTime})`,
                         }))}
                       />
                     </div>
@@ -790,29 +790,8 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
                 </div>
               ))}
 
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
-                  <button
-                    type="button"
-                    onClick={() => setSection('players')}
-                    className="ui-btn-secondary whitespace-nowrap px-2.5 sm:px-3.5"
-                  >
-                    <ArrowLeft className="h-4 w-4 shrink-0" />
-                    <span className="sm:hidden">Players</span>
-                    <span className="hidden sm:inline">Back to Players</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDrafts((prev) => [...prev, createDraft(prev.length + 1)])}
-                    className="ui-btn-secondary whitespace-nowrap px-2.5 sm:px-3.5"
-                  >
-                    <Plus className="h-4 w-4 shrink-0" />
-                    <span className="sm:hidden">Add Station</span>
-                    <span className="hidden sm:inline">Add Another Station</span>
-                  </button>
-                </div>
-
-                <div className="relative">
+              <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="relative order-first sm:order-last">
                   <button
                     type="button"
                     onClick={() => {
@@ -840,6 +819,27 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
                     onDismiss={() => onDismissTip('setup-publish')}
                     onDismissAll={onDismissAllTips}
                   />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 sm:order-first sm:flex sm:items-center">
+                  <button
+                    type="button"
+                    onClick={() => setSection('players')}
+                    className="ui-btn-secondary whitespace-nowrap px-2.5 sm:px-3.5"
+                  >
+                    <ArrowLeft className="h-4 w-4 shrink-0" />
+                    <span className="sm:hidden">Players</span>
+                    <span className="hidden sm:inline">Back to Players</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDrafts((prev) => [...prev, createDraft(prev.length + 1)])}
+                    className="ui-btn-secondary whitespace-nowrap px-2.5 sm:px-3.5"
+                  >
+                    <Plus className="h-4 w-4 shrink-0" />
+                    <span className="sm:hidden">Add Station</span>
+                    <span className="hidden sm:inline">Add Another Station</span>
+                  </button>
                 </div>
               </div>
             </div>

@@ -417,7 +417,7 @@ export function App() {
               </div>
             </div>
 
-            {/* Tablet & Desktop Navigation (md+) — Mobile (< 768px) uses the floating dock */}
+            {/* Tablet & Desktop Navigation (md+) - Mobile (< 768px) uses the floating dock */}
             <nav
               aria-label="Planner sections"
               className="hidden items-center gap-1 rounded-xl bg-[var(--bg-header-pill)] p-1 md:flex lg:gap-1.5"
@@ -550,7 +550,7 @@ export function App() {
         <div className="ui-view-enter border-b border-[#2563EB]/30 bg-[#2563EB]/10 px-4 py-2 text-xs text-[var(--text-primary)]">
           <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-3">
             <span className="font-semibold">
-              New update available — tap reload to get the latest version.
+              New update available. Tap reload to get the latest version.
             </span>
             <button
               type="button"
@@ -580,7 +580,7 @@ export function App() {
       />
 
       {/* Main Content */}
-      <main key={tab} className="ui-view-enter mx-auto max-w-[1440px] p-4 pb-32 sm:p-5 md:pb-6">
+      <main key={tab} className="ui-view-enter mx-auto max-w-[1440px] overflow-x-hidden p-4 pb-36 sm:p-5 md:pb-6">
         <Suspense
           fallback={
             <div className="flex min-h-[45vh] items-center justify-center">

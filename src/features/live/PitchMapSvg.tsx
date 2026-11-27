@@ -530,7 +530,7 @@ export const PitchMapSvg: React.FC<PitchMapSvgProps> = ({
             </span>
           </div>
           <span className="text-[9px] uppercase tracking-wider text-slate-300">
-            {activeMode === 'pace' ? 'Pace (0–8.6m+)' : 'Spin (0–4.1m+)'}
+            {activeMode === 'pace' ? 'Pace (0-8.6m+)' : 'Spin (0-4.1m+)'}
           </span>
         </div>
       </div>

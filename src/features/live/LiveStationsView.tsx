@@ -139,6 +139,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
   }, []);
 
   const [autoSaveOnOutcome, setAutoSaveOnOutcome] = useState(true);
+  const [mobileVisualTab, setMobileVisualTab] = useState<'pitch' | 'ground'>('pitch');
   const [wheelMode, setWheelMode] = useState<'mark' | 'live'>('mark');
   const [shotTab, setShotTab] = useState<keyof typeof SHOT_CATEGORIES>('Front Foot');
   const [showManualLineLength, setShowManualLineLength] = useState(false);
@@ -601,7 +602,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
         </div>
       ) : (
         /* SCORING COCKPIT */
-        <div key={activeStation.id} className="ui-view-enter space-y-3">
+        <div key={activeStation.id} className="ui-view-enter min-w-0 space-y-3">
           {/* Cockpit Top Bar */}
           <div className="ui-card flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5">
             <div className="flex items-center gap-2.5">
@@ -714,9 +715,9 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                       onDismissTip('live-player-strip');
                       handleSelectPlayer(p.id);
                     }}
-                    className={`touch-target flex shrink-0 items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    className={`touch-target flex shrink-0 items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-95 ${
                       selected
-                        ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-white'
+                        ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-white shadow-sm shadow-[var(--accent-primary)]/25'
                         : 'border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:border-[var(--border-strong)]'
                     }`}
                   >
@@ -813,28 +814,62 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
             </div>
           ) : (
             /* 2-Column Scoring Cockpit */
-            <div className="grid gap-4 lg:grid-cols-12">
-              {/* LEFT: Pitch Map + Wagon Wheel */}
-              <div className="ui-card space-y-4 p-4 lg:col-span-5">
-                <PitchMapSvg
-                  selectedLine={line}
-                  selectedLength={length}
-                  stance={batterStance}
-                  bowlingMode={
-                    bowlingStyle &&
-                    (bowlingStyle.toLowerCase().includes('spin') ||
-                      bowlingStyle.toLowerCase().includes('orthodox') ||
-                      bowlingStyle.toLowerCase().includes('chinaman'))
-                      ? 'spin'
-                      : 'pace'
-                  }
-                  balls={playerBalls}
-                  onSelect={(ln, lg) => {
-                    if (!canScore) return;
-                    setLine(ln);
-                    setLength(lg);
-                  }}
-                />
+            <div className="grid min-w-0 gap-4 lg:grid-cols-12">
+              {/* LEFT: Pitch Map + Wagon Wheel (Tabbed on mobile to cut scroll distance, stacked on lg+) */}
+              <div className="ui-card min-w-0 space-y-4 overflow-hidden p-3.5 sm:p-4 lg:col-span-5">
+                {/* Mobile 1-Tap Pitch / Ground Switcher */}
+                <div className="grid grid-cols-2 gap-1 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-1 text-xs font-bold lg:hidden">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      hapticTap();
+                      setMobileVisualTab('pitch');
+                    }}
+                    className={`min-h-[38px] rounded-lg px-3 py-1.5 transition-colors ${
+                      mobileVisualTab === 'pitch'
+                        ? 'bg-[var(--accent-primary)] text-white shadow-xs'
+                        : 'text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    Pitch Map{length ? ` · ${length}` : ''}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      hapticTap();
+                      setMobileVisualTab('ground');
+                    }}
+                    className={`min-h-[38px] rounded-lg px-3 py-1.5 transition-colors ${
+                      mobileVisualTab === 'ground'
+                        ? 'bg-[var(--accent-primary)] text-white shadow-xs'
+                        : 'text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    3D Ground ({playerBalls.filter((b) => typeof b.shotX === 'number').length})
+                  </button>
+                </div>
+
+                <div className={mobileVisualTab === 'pitch' ? 'block' : 'hidden lg:block'}>
+                  <PitchMapSvg
+                    selectedLine={line}
+                    selectedLength={length}
+                    stance={batterStance}
+                    bowlingMode={
+                      bowlingStyle &&
+                      (bowlingStyle.toLowerCase().includes('spin') ||
+                        bowlingStyle.toLowerCase().includes('orthodox') ||
+                        bowlingStyle.toLowerCase().includes('chinaman'))
+                        ? 'spin'
+                        : 'pace'
+                    }
+                    balls={playerBalls}
+                    onSelect={(ln, lg) => {
+                      if (!canScore) return;
+                      setLine(ln);
+                      setLength(lg);
+                    }}
+                  />
+                </div>
 
                 <button
                   type="button"
@@ -886,7 +921,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                 )}
 
                 {/* Wagon Wheel Mode Switcher */}
-                <div className="space-y-2">
+                <div className={`space-y-2 ${mobileVisualTab === 'ground' ? 'block' : 'hidden lg:block'}`}>
                   <div className="flex items-center justify-between">
                     <div className="inline-flex rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-0.5 text-xs font-semibold">
                       <button
@@ -956,7 +991,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
               </div>
 
               {/* RIGHT: Bowling Style, Shot Type, Runs, Contact Outcome & Actions */}
-              <div className="ui-card flex flex-col justify-between space-y-4 p-4 lg:col-span-7">
+              <div className="ui-card flex min-w-0 flex-col justify-between space-y-4 p-3.5 sm:p-4 lg:col-span-7">
                 <div className="space-y-4">
                   {/* Broadcast Cricket Player Stat Card */}
                   <LiveBatterCard
@@ -980,7 +1015,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                             hapticTap();
                             setBowlingStyle(bowlingStyle === bs ? undefined : bs);
                           }}
-                            className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                            className={`min-h-[38px] rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${
                               bowlingStyle === bs
                                 ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-white'
                                 : 'border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[var(--text-primary)]'
@@ -1121,7 +1156,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                                 setDismissalType(dt);
                               }
                             }}
-                            className={`rounded-lg border px-2 py-1.5 text-[11px] font-bold transition-colors ${
+                            className={`min-h-[38px] rounded-lg border px-2 py-2 text-[11px] font-bold transition-colors ${
                               active
                                 ? 'border-rose-600 bg-rose-600 text-white shadow-xs'
                                 : 'border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:border-rose-500/60'
@@ -1253,8 +1288,20 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                 </div>
 
                 {/* Action Bar */}
-                <div className="flex flex-col gap-2 border-t border-[var(--border-subtle)] pt-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex gap-2">
+                <div className="flex flex-col gap-2.5 border-t border-[var(--border-subtle)] pt-3 sm:flex-row sm:items-center sm:justify-between">
+                  {!autoSaveOnOutcome && (
+                    <button
+                      type="button"
+                      disabled={!canScore || !contactOutcome}
+                      onClick={() => commitBall()}
+                      className="ui-btn-primary order-first w-full px-5 sm:order-last sm:w-auto"
+                    >
+                      <span>Save &amp; Next Ball</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  )}
+
+                  <div className="flex items-center justify-between gap-3">
                     <button
                       type="button"
                       disabled={!canScore || playerBalls.length === 0}
@@ -1262,7 +1309,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                         hapticWarning();
                         onUndoLastBall(activeStation.id, activePlayerId);
                       }}
-                      className="ui-btn-danger flex-1 whitespace-nowrap sm:flex-none"
+                      className="ui-btn-danger whitespace-nowrap px-4"
                     >
                       <Undo2 className="h-4 w-4 shrink-0" />
                       <span>Undo</span>
@@ -1271,25 +1318,13 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                       type="button"
                       disabled={!canScore}
                       onClick={() => setShowCompleteModal(true)}
-                      className="ui-btn-secondary flex-1 whitespace-nowrap px-3 sm:flex-none"
+                      className="ui-btn-secondary flex-1 whitespace-nowrap px-4 sm:flex-none"
                     >
                       <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--accent-primary)]" />
                       <span className="sm:hidden">Complete</span>
                       <span className="hidden sm:inline">Complete Player</span>
                     </button>
                   </div>
-
-                  {!autoSaveOnOutcome && (
-                    <button
-                      type="button"
-                      disabled={!canScore || !contactOutcome}
-                      onClick={() => commitBall()}
-                      className="ui-btn-primary w-full px-5 sm:w-auto"
-                    >
-                      <span>Save & Next Ball</span>
-                      <ArrowRight className="h-4 w-4" />
-                    </button>
-                  )}
                 </div>
               </div>
             </div>

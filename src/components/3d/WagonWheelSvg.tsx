@@ -614,13 +614,16 @@ export const WagonWheelSvg: React.FC<WagonWheelSvgProps> = ({
       {/* Top Bar: View Presets + Stance Toggle */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-1.5">
-          <div className="inline-flex rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-0.5 text-[11px] font-bold">
+          <div className="inline-flex rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-0.5 text-xs font-bold">
             {(['RHB', 'LHB'] as const).map((s) => (
               <button
                 key={s}
                 type="button"
-                onClick={() => setStance(s)}
-                className={`rounded-md px-2 py-1 transition-colors ${
+                onClick={() => {
+                  hapticTap();
+                  setStance(s);
+                }}
+                className={`rounded-md px-2.5 py-1.5 transition-colors ${
                   stance === s
                     ? 'bg-[var(--accent-primary)] text-white'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -631,7 +634,7 @@ export const WagonWheelSvg: React.FC<WagonWheelSvgProps> = ({
             ))}
           </div>
 
-          <div className="inline-flex rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-0.5 text-[11px] font-semibold">
+          <div className="inline-flex rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-0.5 text-xs font-semibold">
             {(
               [
                 { id: 'broadcast', label: 'Broadcast 3D' },
@@ -642,8 +645,11 @@ export const WagonWheelSvg: React.FC<WagonWheelSvgProps> = ({
               <button
                 key={p.id}
                 type="button"
-                onClick={() => applyPreset(p.id)}
-                className={`rounded-md px-2 py-1 transition-colors ${
+                onClick={() => {
+                  hapticTap();
+                  applyPreset(p.id);
+                }}
+                className={`rounded-md px-2.5 py-1.5 transition-colors ${
                   preset === p.id
                     ? 'bg-[var(--bg-header)] text-white'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -675,7 +681,7 @@ export const WagonWheelSvg: React.FC<WagonWheelSvgProps> = ({
       </div>
 
       {/* Three.js WebGL 3D Cricket Stadium Canvas */}
-      <div className="relative overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[#071222]">
+      <div className="relative w-full max-w-full overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[#071222]">
         {!isSceneReady && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#071222]">
             <SlcLoader label="Loading 3D Ground..." />
@@ -683,7 +689,7 @@ export const WagonWheelSvg: React.FC<WagonWheelSvgProps> = ({
         )}
         <div
           ref={mountRef}
-          className={`h-[270px] w-full sm:h-[310px] ${
+          className={`h-[240px] w-full max-w-full overflow-hidden sm:h-[310px] ${
             interactive ? 'cursor-crosshair' : 'cursor-grab active:cursor-grabbing'
           }`}
         />

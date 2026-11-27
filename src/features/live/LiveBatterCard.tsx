@@ -50,7 +50,10 @@ export const LiveBatterCard: React.FC<LiveBatterCardProps> = ({
           <polygon points="350,0 355,0 307,72 302,72" fill="#FACC15" fillOpacity="0.65" />
         </svg>
 
-        <div className="relative z-10 flex min-w-0 items-center gap-2.5">
+        <div
+          key={player?.id ?? 'none'}
+          className="ui-player-switch relative z-10 flex min-w-0 items-center gap-2.5"
+        >
           <SlcLionCrest className="h-8 w-8 shrink-0 drop-shadow-sm" />
           <div className="min-w-0">
             <h3 className="truncate text-sm font-extrabold uppercase tracking-wide">

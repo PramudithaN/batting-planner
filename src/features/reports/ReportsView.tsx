@@ -597,8 +597,6 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
           ) : (
             <div className="space-y-2.5">
               {topShotsBreakdown.map((item) => {
-                const maxBalls = topShotsBreakdown[0]?.balls || 1;
-                const widthPct = Math.round((item.balls / maxBalls) * 100);
                 return (
                   <div key={item.shot} className="space-y-1 text-xs">
                     <div className="flex items-center justify-between gap-2">
@@ -612,7 +610,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                     <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--bg-elevated)]">
                       <div
                         className="h-full rounded-full bg-amber-500 transition-all"
-                        style={{ width: `${widthPct}%` }}
+                        style={{ width: `${item.solidPct}%` }}
                       />
                     </div>
                   </div>
