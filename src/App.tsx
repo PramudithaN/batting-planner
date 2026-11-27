@@ -392,7 +392,7 @@ export function App() {
       <PwaInstallBanner />
 
       {/* Top Navbar with Sri Lanka Jersey Accent Strap & Lion Crest */}
-      <header className="sticky top-0 z-30 bg-[var(--bg-header)] text-white shadow-sm">
+      <header className="sticky top-0 z-30 bg-[var(--bg-header)] pt-[env(safe-area-inset-top)] text-white shadow-sm">
         {/* Sri Lanka Jersey Gold & Maroon Accent Strap */}
         <div className="flex h-1 w-full">
           <div className="w-1/2 bg-[#881337]" />
@@ -417,10 +417,10 @@ export function App() {
               </div>
             </div>
 
-            {/* Desktop Navigation (lg+) — Mobile/Tablet uses the thumb-friendly bottom bar */}
+            {/* Tablet & Desktop Navigation (md+) — Mobile (< 768px) uses the floating dock */}
             <nav
               aria-label="Planner sections"
-              className="hidden items-center gap-1.5 rounded-xl bg-[var(--bg-header-pill)] p-1 lg:flex"
+              className="hidden items-center gap-1 rounded-xl bg-[var(--bg-header-pill)] p-1 md:flex lg:gap-1.5"
             >
               {(
                 [
@@ -580,7 +580,7 @@ export function App() {
       />
 
       {/* Main Content */}
-      <main key={tab} className="ui-view-enter mx-auto max-w-[1440px] p-4 pb-24 sm:p-5 lg:pb-6">
+      <main key={tab} className="ui-view-enter mx-auto max-w-[1440px] p-4 pb-32 sm:p-5 md:pb-6">
         <Suspense
           fallback={
             <div className="flex min-h-[45vh] items-center justify-center">
@@ -646,10 +646,10 @@ export function App() {
         </Suspense>
       </main>
 
-      {/* Mobile / Tablet Floating Dock Navigation */}
+      {/* Mobile Floating Dock Navigation (< md) */}
       <nav
         aria-label="Mobile navigation"
-        className="pointer-events-none fixed inset-x-0 bottom-3.5 z-30 px-4 pb-[env(safe-area-inset-bottom)] lg:hidden"
+        className="pointer-events-none fixed inset-x-0 bottom-3.5 z-30 px-4 pb-[env(safe-area-inset-bottom)] md:hidden"
       >
         <div className="pointer-events-auto mx-auto max-w-md rounded-full border border-white/15 bg-[var(--bg-header)]/95 p-1.5 shadow-[0_14px_38px_rgba(0,0,0,0.48)] backdrop-blur-xl">
           <div className="relative grid grid-cols-3">

@@ -1262,19 +1262,20 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                         hapticWarning();
                         onUndoLastBall(activeStation.id, activePlayerId);
                       }}
-                      className="ui-btn-danger flex-1 sm:flex-none"
+                      className="ui-btn-danger flex-1 whitespace-nowrap sm:flex-none"
                     >
-                      <Undo2 className="h-4 w-4" />
+                      <Undo2 className="h-4 w-4 shrink-0" />
                       <span>Undo</span>
                     </button>
                     <button
                       type="button"
                       disabled={!canScore}
                       onClick={() => setShowCompleteModal(true)}
-                      className="ui-btn-secondary flex-1 sm:flex-none"
+                      className="ui-btn-secondary flex-1 whitespace-nowrap px-3 sm:flex-none"
                     >
-                      <CheckCircle2 className="h-4 w-4 text-[var(--accent-primary)]" />
-                      <span>Complete Player</span>
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--accent-primary)]" />
+                      <span className="sm:hidden">Complete</span>
+                      <span className="hidden sm:inline">Complete Player</span>
                     </button>
                   </div>
 

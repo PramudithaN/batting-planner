@@ -476,7 +476,7 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
               </form>
             )}
 
-            <div className="grid max-h-[360px] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 md:grid-cols-3">
+            <div className="grid max-h-[360px] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3">
               {filteredPlayers.map((p) => {
                 const checked = day.availablePlayerIds.includes(p.id);
                 return (
@@ -782,7 +782,7 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
                         type="text"
                         value={d.focus}
                         onChange={(e) => updateDraft(d.key, { focus: e.target.value })}
-                        placeholder="e.g. Sweep against spin, Leaving outside off"
+                        placeholder="e.g. Sweep vs spin, Leaving outside off"
                         className="ui-input"
                       />
                     </div>
@@ -791,22 +791,24 @@ export const DaySetupView: React.FC<DaySetupViewProps> = ({
               ))}
 
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
                   <button
                     type="button"
                     onClick={() => setSection('players')}
-                    className="ui-btn-secondary flex-1 sm:flex-none"
+                    className="ui-btn-secondary whitespace-nowrap px-2.5 sm:px-3.5"
                   >
-                    <ArrowLeft className="h-4 w-4" />
-                    <span>Back to Players</span>
+                    <ArrowLeft className="h-4 w-4 shrink-0" />
+                    <span className="sm:hidden">Players</span>
+                    <span className="hidden sm:inline">Back to Players</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setDrafts((prev) => [...prev, createDraft(prev.length + 1)])}
-                    className="ui-btn-secondary flex-1 sm:flex-none"
+                    className="ui-btn-secondary whitespace-nowrap px-2.5 sm:px-3.5"
                   >
-                    <Plus className="h-4 w-4" />
-                    <span>Add Another Station</span>
+                    <Plus className="h-4 w-4 shrink-0" />
+                    <span className="sm:hidden">Add Station</span>
+                    <span className="hidden sm:inline">Add Another Station</span>
                   </button>
                 </div>
 

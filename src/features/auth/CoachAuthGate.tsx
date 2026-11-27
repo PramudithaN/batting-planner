@@ -78,7 +78,7 @@ export const CoachAuthGate: React.FC<CoachAuthGateProps> = ({ coaches, onSignIn 
   });
 
   return (
-    <div className="theme-dark flex min-h-screen items-center justify-center bg-[var(--bg-canvas)] p-4 text-[var(--text-primary)]">
+    <div className="theme-dark flex min-h-screen items-center justify-center bg-[var(--bg-canvas)] p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] text-[var(--text-primary)]">
       <div className="ui-card w-full max-w-2xl overflow-hidden shadow-xl">
         {/* Sri Lanka Jersey Accent Strap */}
         <div className="flex h-1 w-full">

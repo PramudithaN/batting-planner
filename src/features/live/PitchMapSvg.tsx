@@ -139,19 +139,19 @@ function createPitchGroundTexture(
     // Clean Broadcast Side Labels on Turf
     const midY = (y1 + y2) / 2;
     ctx.save();
-    ctx.font = '700 18px Inter, system-ui, sans-serif';
+    ctx.font = '700 16px Inter, system-ui, sans-serif';
     ctx.textBaseline = 'middle';
     ctx.shadowColor = 'rgba(0,0,0,0.75)';
     ctx.shadowBlur = 4;
 
     ctx.fillStyle = isSelected ? '#FFFFFF' : 'rgba(255,255,255,0.94)';
     ctx.textAlign = 'right';
-    ctx.fillText(z.label.toUpperCase(), pitchLeft - 12, midY);
+    ctx.fillText(z.label.toUpperCase(), pitchLeft - 10, midY);
 
-    ctx.font = '600 17px Inter, system-ui, sans-serif';
+    ctx.font = '600 15px Inter, system-ui, sans-serif';
     ctx.fillStyle = 'rgba(226, 232, 240, 0.88)';
     ctx.textAlign = 'left';
-    ctx.fillText(z.rangeText, pitchRight + 12, midY);
+    ctx.fillText(z.rangeText, pitchRight + 10, midY);
     ctx.restore();
   }
 
@@ -244,8 +244,8 @@ export const PitchMapSvg: React.FC<PitchMapSvgProps> = ({
     const scene = new THREE.Scene();
     scene.background = new THREE.Color('#0B1F13');
 
-    const camera = new THREE.PerspectiveCamera(40, width / height, 0.5, 80);
-    camera.position.set(0, 10.6, 9.8);
+    const camera = new THREE.PerspectiveCamera(42, width / height, 0.5, 80);
+    camera.position.set(0, 11.2, 10.2);
     camera.lookAt(0, 0, -0.3);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
