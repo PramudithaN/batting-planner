@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { WAGON_RUN_COLORS, type BallEvent } from '../domain/types';
-import { SlcLoader } from './ui/SlcLoader';
+import { WAGON_RUN_COLORS, type BallEvent } from '../../domain/types';
+import { disposeThreeGroup } from '../../lib/threeUtils';
+import { SlcLoader } from '../ui/SlcLoader';
 
 interface WagonWheelSvgProps {
   interactive?: boolean;
@@ -462,16 +463,7 @@ export const WagonWheelSvg: React.FC<WagonWheelSvgProps> = ({
     const { shotsGroup } = refs;
 
     // Clear previous meshes
-    while (shotsGroup.children.length > 0) {
-      const child = shotsGroup.children[0] as THREE.Mesh;
-      shotsGroup.remove(child);
-      child.geometry?.dispose();
-      if (Array.isArray(child.material)) {
-        child.material.forEach((m) => m.dispose());
-      } else {
-        child.material?.dispose();
-      }
-    }
+    disposeThreeGroup(shotsGroup);
 
     const start = toWorld(50, 34);
 
@@ -548,16 +540,7 @@ export const WagonWheelSvg: React.FC<WagonWheelSvgProps> = ({
     if (!refs) return;
     const { markerGroup } = refs;
 
-    while (markerGroup.children.length > 0) {
-      const child = markerGroup.children[0] as THREE.Mesh;
-      markerGroup.remove(child);
-      child.geometry?.dispose();
-      if (Array.isArray(child.material)) {
-        child.material.forEach((m) => m.dispose());
-      } else {
-        child.material?.dispose();
-      }
-    }
+    disposeThreeGroup(markerGroup);
 
     if (!interactive || typeof selectedX !== 'number' || typeof selectedY !== 'number') return;
 

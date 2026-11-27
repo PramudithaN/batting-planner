@@ -10,7 +10,7 @@ import {
   Trash2,
   Users,
 } from 'lucide-react';
-import { PLAYER_POOL_SOURCES } from '../domain/roster';
+import { PLAYER_POOL_SOURCES } from '../../domain/roster';
 import {
   BALL_TYPES,
   BOWLING_TYPES,
@@ -21,13 +21,13 @@ import {
   type PracticeDay,
   type SessionSlot,
   type StationConfig,
-} from '../domain/types';
-import { PlayerAvatar } from './ui/PlayerAvatar';
-import { UiConfirmModal } from './ui/UiConfirmModal';
-import { UiDatePicker } from './ui/UiDatePicker';
-import { UiGuideTip } from './ui/UiGuideTip';
-import { UiSelect } from './ui/UiSelect';
-import { UiTimePicker } from './ui/UiTimePicker';
+} from '../../domain/types';
+import { PlayerAvatar } from '../../components/ui/PlayerAvatar';
+import { UiConfirmModal } from '../../components/ui/UiConfirmModal';
+import { UiDatePicker } from '../../components/ui/UiDatePicker';
+import { UiGuideTip } from '../../components/ui/UiGuideTip';
+import { UiSelect } from '../../components/ui/UiSelect';
+import { UiTimePicker } from '../../components/ui/UiTimePicker';
 
 interface DaySetupViewProps {
   day: PracticeDay;

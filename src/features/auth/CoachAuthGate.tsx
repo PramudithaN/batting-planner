@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Delete, ShieldCheck } from 'lucide-react';
-import type { CoachAccount } from '../domain/types';
-import { SlcLionCrest } from './SlcLionCrest';
+import type { CoachAccount } from '../../domain/types';
+import { SlcLionCrest } from '../../components/SlcLionCrest';
 
 interface CoachAuthGateProps {
   coaches: CoachAccount[];

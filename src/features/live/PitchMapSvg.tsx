@@ -6,7 +6,8 @@ import {
   SPIN_LENGTH_ZONES,
   type BallEvent,
   type PitchLengthZone,
-} from '../domain/types';
+} from '../../domain/types';
+import { disposeThreeGroup } from '../../lib/threeUtils';
 
 interface PitchMapSvgProps {
   selectedLine?: string;
@@ -380,13 +381,7 @@ export const PitchMapSvg: React.FC<PitchMapSvgProps> = ({
     if (!refs) return;
     const { ballsGroup } = refs;
 
-    while (ballsGroup.children.length > 0) {
-      const child = ballsGroup.children[0] as THREE.Mesh;
-      ballsGroup.remove(child);
-      child.geometry?.dispose();
-      if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
-      else child.material?.dispose();
-    }
+    disposeThreeGroup(ballsGroup);
 
     const laneW = (LINE_HALF_SPAN * 2) / orderedLines.length;
 
@@ -434,13 +429,7 @@ export const PitchMapSvg: React.FC<PitchMapSvgProps> = ({
     if (!refs) return;
     const { markerGroup } = refs;
 
-    while (markerGroup.children.length > 0) {
-      const child = markerGroup.children[0] as THREE.Mesh;
-      markerGroup.remove(child);
-      child.geometry?.dispose();
-      if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
-      else child.material?.dispose();
-    }
+    disposeThreeGroup(markerGroup);
 
     if (!selectedLine || !selectedLength) return;
 

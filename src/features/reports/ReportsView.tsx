@@ -16,17 +16,17 @@ import {
   type CoachAccount,
   type Player,
   type PracticeDay,
-} from '../domain/types';
-import { exportDayExcel, exportPlayerHistoryExcel } from '../lib/excelExport';
-import { loadAllDays } from '../store/plannerStore';
-import { SlcLionCrest } from './SlcLionCrest';
-import { PlayerAvatar } from './ui/PlayerAvatar';
-import { UiConfirmModal } from './ui/UiConfirmModal';
-import { UiDatePicker } from './ui/UiDatePicker';
-import { UiGuideTip } from './ui/UiGuideTip';
-import { SlcLoader, SlcTopProgressBar } from './ui/SlcLoader';
-import { UiSelect } from './ui/UiSelect';
-import { WagonWheelSvg } from './WagonWheelSvg';
+} from '../../domain/types';
+import { exportDayExcel, exportPlayerHistoryExcel } from '../../lib/excelExport';
+import { loadAllDays } from '../../store/plannerStore';
+import { SlcLionCrest } from '../../components/SlcLionCrest';
+import { PlayerAvatar } from '../../components/ui/PlayerAvatar';
+import { UiConfirmModal } from '../../components/ui/UiConfirmModal';
+import { UiDatePicker } from '../../components/ui/UiDatePicker';
+import { UiGuideTip } from '../../components/ui/UiGuideTip';
+import { SlcLoader, SlcTopProgressBar } from '../../components/ui/SlcLoader';
+import { UiSelect } from '../../components/ui/UiSelect';
+import { WagonWheelSvg } from '../../components/3d/WagonWheelSvg';
 
 interface ReportsViewProps {
   day: PracticeDay;

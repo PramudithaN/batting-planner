@@ -10,11 +10,11 @@ import {
   Wifi,
   WifiOff,
 } from 'lucide-react';
-import { CoachAuthGate } from './components/CoachAuthGate';
-import { DaySetupView } from './components/DaySetupView';
-import { LiveStationsView } from './components/LiveStationsView';
+import { CoachAuthGate } from './features/auth/CoachAuthGate';
+import { DaySetupView } from './features/setup/DaySetupView';
+import { LiveStationsView } from './features/live/LiveStationsView';
 import { PwaInstallBanner } from './components/PwaInstallBanner';
-import { ReportsView } from './components/ReportsView';
+import { ReportsView } from './features/reports/ReportsView';
 import { SlcLionCrest } from './components/SlcLionCrest';
 import { UiConfirmModal } from './components/ui/UiConfirmModal';
 import { UiDingToast, type DingToastItem } from './components/ui/UiDingToast';

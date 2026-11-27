@@ -18,7 +18,6 @@ export default defineConfig({
       output: {
         manualChunks: {
           exceljs: ['exceljs'],
-          supabase: ['@supabase/supabase-js'],
         },
       },
     },
