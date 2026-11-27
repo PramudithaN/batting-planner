@@ -479,16 +479,16 @@ export const WagonWheelSvg: React.FC<WagonWheelSvgProps> = ({
       const isSelected = inspectedBallId === b.id;
       const isSix = b.runs === '6';
       const isFour = b.runs === '4';
-      const isBoundaryCurve = isSix || isFour;
+      const isBoundaryCurve = isSix;
 
       let pathCurve: THREE.Curve<THREE.Vector3>;
       if (isBoundaryCurve) {
         const midX = (start.x + end.x) / 2;
         const midZ = (start.z + end.z) / 2;
         const dist = Math.hypot(end.x - start.x, end.z - start.z);
-        const arcPeak = isSix ? Math.max(12, dist * 0.72) : Math.max(6.5, dist * 0.38);
+        const arcPeak = Math.max(12, dist * 0.72);
 
-        // Ground shadow line so the 3D lift/curve is immediately visible for 4s and 6s
+        // Ground shadow line so the 3D lift/curve is immediately visible for 6s
         const shadowGeo = new THREE.BufferGeometry().setFromPoints([
           new THREE.Vector3(start.x, 0.08, start.z),
           new THREE.Vector3(end.x, 0.08, end.z),
@@ -506,14 +506,14 @@ export const WagonWheelSvg: React.FC<WagonWheelSvgProps> = ({
           new THREE.Vector3(end.x, 0.2, end.z)
         );
       } else {
-        // Straight ground line for Dot, 1, 2, 3, and unrecorded runs
+        // Straight ground line for Dot, 1, 2, 3, 4, and unrecorded runs
         pathCurve = new THREE.LineCurve3(
           new THREE.Vector3(start.x, 0.14, start.z),
           new THREE.Vector3(end.x, 0.14, end.z)
         );
       }
 
-      const radius = isSelected ? 0.18 : isBoundaryCurve ? 0.13 : 0.09;
+      const radius = isSelected ? 0.18 : isSix || isFour ? 0.13 : 0.09;
       const tubeGeo = new THREE.TubeGeometry(pathCurve, isBoundaryCurve ? 24 : 4, radius, 8, false);
       const tubeMat = new THREE.MeshStandardMaterial({
         color: hex,

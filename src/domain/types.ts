@@ -35,12 +35,98 @@ export const LINES = [
 ] as const;
 
 export const LENGTHS = [
-  'Full toss',
   'Yorker',
-  'Full',
-  'Good length',
-  'Back of a length',
+  'Fuller',
+  'Good Length',
+  'Short of a Length',
   'Short',
+] as const;
+
+export interface PitchLengthZone {
+  label: string;
+  minMeters: number;
+  maxMeters: number;
+  rangeText: string;
+  fill: string;
+  textColor: string;
+}
+
+export const PACE_LENGTH_ZONES: readonly PitchLengthZone[] = [
+  {
+    label: 'Yorker',
+    minMeters: 0,
+    maxMeters: 0.9,
+    rangeText: '0–0.9m',
+    fill: 'rgba(234, 179, 8, 0.40)',
+    textColor: '#FEF08A',
+  },
+  {
+    label: 'Fuller',
+    minMeters: 0.9,
+    maxMeters: 2.8,
+    rangeText: '0.9–2.8m',
+    fill: 'rgba(34, 197, 94, 0.36)',
+    textColor: '#BBF7D0',
+  },
+  {
+    label: 'Good Length',
+    minMeters: 2.8,
+    maxMeters: 5.9,
+    rangeText: '2.8–5.9m',
+    fill: 'rgba(234, 88, 12, 0.38)',
+    textColor: '#FED7AA',
+  },
+  {
+    label: 'Short of a Length',
+    minMeters: 5.9,
+    maxMeters: 8.6,
+    rangeText: '5.9–8.6m',
+    fill: 'rgba(139, 92, 246, 0.32)',
+    textColor: '#DDD6FE',
+  },
+  {
+    label: 'Short',
+    minMeters: 8.6,
+    maxMeters: 11.5,
+    rangeText: '8.6m+',
+    fill: 'rgba(71, 85, 105, 0.42)',
+    textColor: '#E2E8F0',
+  },
+] as const;
+
+export const SPIN_LENGTH_ZONES: readonly PitchLengthZone[] = [
+  {
+    label: 'Yorker',
+    minMeters: 0,
+    maxMeters: 0.9,
+    rangeText: '0–0.9m',
+    fill: 'rgba(234, 179, 8, 0.40)',
+    textColor: '#FEF08A',
+  },
+  {
+    label: 'Fuller',
+    minMeters: 0.9,
+    maxMeters: 2.5,
+    rangeText: '0.9–2.5m',
+    fill: 'rgba(34, 197, 94, 0.36)',
+    textColor: '#BBF7D0',
+  },
+  {
+    label: 'Good Length',
+    minMeters: 2.5,
+    maxMeters: 4.1,
+    rangeText: '2.5–4.1m',
+    fill: 'rgba(234, 88, 12, 0.38)',
+    textColor: '#FED7AA',
+  },
+  {
+    label: 'Short Length',
+    minMeters: 4.1,
+    maxMeters: 11.5,
+    rangeText: '4.1m+',
+    fill: 'rgba(139, 92, 246, 0.32)',
+    textColor: '#DDD6FE',
+  },
 ] as const;
 
 export const SHOT_TYPES = [

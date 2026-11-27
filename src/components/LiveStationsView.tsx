@@ -656,6 +656,15 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                   selectedLine={line}
                   selectedLength={length}
                   stance={batterStance}
+                  bowlingMode={
+                    bowlingStyle &&
+                    (bowlingStyle.toLowerCase().includes('spin') ||
+                      bowlingStyle.toLowerCase().includes('orthodox') ||
+                      bowlingStyle.toLowerCase().includes('chinaman'))
+                      ? 'spin'
+                      : 'pace'
+                  }
+                  balls={playerBalls}
                   onSelect={(ln, lg) => {
                     if (!canScore) return;
                     setLine(ln);
@@ -877,6 +886,10 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                     <div className="grid grid-cols-3 divide-x divide-y divide-[var(--border-subtle)] border-t border-[var(--border-subtle)] bg-[var(--bg-surface)] text-center sm:grid-cols-6 sm:divide-y-0">
                       {CONTACT_OUTCOMES.map((co) => {
                         const count = batterStats.outcomeCounts[co] ?? 0;
+                        const pct =
+                          batterStats.balls > 0
+                            ? Math.round((count / batterStats.balls) * 100)
+                            : 0;
                         const shortLabel =
                           co === 'Played and missed' ? 'Played & Miss' : co;
                         return (
@@ -885,7 +898,10 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                               {shortLabel}
                             </p>
                             <p className="tabular-nums text-xs font-extrabold text-[var(--text-primary)]">
-                              {count}
+                              {pct}%
+                              <span className="ml-1 text-[10px] font-semibold text-[var(--text-muted)]">
+                                ({count})
+                              </span>
                             </p>
                           </div>
                         );
