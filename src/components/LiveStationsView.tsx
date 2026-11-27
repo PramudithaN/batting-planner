@@ -1,8 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Crosshair,
   Eye,
   Lock,
@@ -56,20 +58,8 @@ interface LiveStationsViewProps {
   onDismissAllTips: () => void;
 }
 
-const OUTCOME_STYLE: Record<string, string> = {
-  Solid:
-    'border-[var(--border-strong)] border-l-4 border-l-[#16A34A] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]',
-  'Not middled':
-    'border-[var(--border-strong)] border-l-4 border-l-[#D97706] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]',
-  'Played and missed':
-    'border-[var(--border-strong)] border-l-4 border-l-[#64748B] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]',
-  Beaten:
-    'border-[var(--border-strong)] border-l-4 border-l-[#DC2626] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]',
-  Edged:
-    'border-[var(--border-strong)] border-l-4 border-l-[#EA580C] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]',
-  Left:
-    'border-[var(--border-strong)] border-l-4 border-l-[#2563EB] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]',
-};
+const OUTCOME_BASE_STYLE =
+  'border-[var(--border-strong)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]';
 
 const OUTCOME_ACTIVE: Record<string, string> = {
   Solid: 'border-emerald-600 bg-emerald-600 text-white',
@@ -131,6 +121,22 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
   const [lateSelection, setLateSelection] = useState('');
   const [lateManualName, setLateManualName] = useState('');
 
+  const playerStripRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updatePlayerStripScroll = useCallback(() => {
+    const el = playerStripRef.current;
+    if (!el) {
+      setCanScrollLeft(false);
+      setCanScrollRight(false);
+      return;
+    }
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setCanScrollLeft(scrollLeft > 4);
+    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 4);
+  }, []);
+
   const [autoSaveOnOutcome, setAutoSaveOnOutcome] = useState(true);
   const [wheelMode, setWheelMode] = useState<'mark' | 'live'>('mark');
   const [shotTab, setShotTab] = useState<keyof typeof SHOT_CATEGORIES>('Front Foot');
@@ -178,6 +184,25 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
   useEffect(() => {
     setBatterStance(activePlayer?.battingHand ?? 'RHB');
   }, [activePlayerId, activePlayer?.battingHand]);
+
+  useEffect(() => {
+    const el = playerStripRef.current;
+    if (!el) return;
+    updatePlayerStripScroll();
+    const observer = new ResizeObserver(updatePlayerStripScroll);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [availablePlayers.length, activeStation?.id, updatePlayerStripScroll]);
+
+  const scrollPlayerStrip = (direction: 'left' | 'right') => {
+    const el = playerStripRef.current;
+    if (!el) return;
+    const distance = Math.max(200, Math.round(el.clientWidth * 0.6));
+    el.scrollBy({
+      left: direction === 'left' ? -distance : distance,
+      behavior: 'smooth',
+    });
+  };
 
   const playerBalls = useMemo(
     () =>
@@ -589,8 +614,40 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
 
           {/* 1-Tap Horizontal Player Pill Strip */}
           <div className="relative">
+            {canScrollLeft && (
+              <button
+                type="button"
+                aria-label="Scroll players left"
+                onClick={() => scrollPlayerStrip('left')}
+                className="absolute top-1/2 left-0 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--border-strong)] bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm transition-colors hover:bg-[var(--bg-elevated)]"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+            )}
             <div
-              className={`no-scrollbar flex items-center gap-2 overflow-x-auto pb-1 ${
+              ref={playerStripRef}
+              onScroll={updatePlayerStripScroll}
+              style={{
+                maskImage:
+                  canScrollLeft && canScrollRight
+                    ? 'linear-gradient(to right, transparent, black 40px, black calc(100% - 40px), transparent)'
+                    : canScrollLeft
+                      ? 'linear-gradient(to right, transparent, black 40px, black)'
+                      : canScrollRight
+                        ? 'linear-gradient(to right, black, black calc(100% - 40px), transparent)'
+                        : undefined,
+                WebkitMaskImage:
+                  canScrollLeft && canScrollRight
+                    ? 'linear-gradient(to right, transparent, black 40px, black calc(100% - 40px), transparent)'
+                    : canScrollLeft
+                      ? 'linear-gradient(to right, transparent, black 40px, black)'
+                      : canScrollRight
+                        ? 'linear-gradient(to right, black, black calc(100% - 40px), transparent)'
+                        : undefined,
+              }}
+              className={`no-scrollbar flex scroll-px-10 items-center gap-2 overflow-x-auto pb-1 ${
+                canScrollLeft ? 'pl-9' : ''
+              } ${canScrollRight ? 'pr-9' : ''} ${
                 isTipVisible('live-player-strip') ? 'rounded-lg ring-2 ring-[#2563EB] ring-offset-2' : ''
               }`}
             >
@@ -607,7 +664,12 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.currentTarget.scrollIntoView({
+                        behavior: 'smooth',
+                        inline: 'nearest',
+                        block: 'nearest',
+                      });
                       onDismissTip('live-player-strip');
                       handleSelectPlayer(p.id);
                     }}
@@ -636,6 +698,16 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                 );
               })}
             </div>
+            {canScrollRight && (
+              <button
+                type="button"
+                aria-label="Scroll players right"
+                onClick={() => scrollPlayerStrip('right')}
+                className="absolute top-1/2 right-0 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--border-strong)] bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm transition-colors hover:bg-[var(--bg-elevated)]"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            )}
             <UiGuideTip
               visible={isTipVisible('live-player-strip')}
               title="1. Select Batter"
@@ -1179,8 +1251,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                             className={`touch-target rounded-lg border px-3 py-2 text-xs font-bold transition-colors ${
                               active
                                 ? OUTCOME_ACTIVE[co]
-                                : OUTCOME_STYLE[co] ??
-                                  'border-[var(--border-subtle)] bg-[var(--bg-elevated)]'
+                                : OUTCOME_BASE_STYLE
                             }`}
                           >
                             {co}
