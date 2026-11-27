@@ -1,4 +1,4 @@
-const CACHE_NAME = 'slc-bp-v3';
+const CACHE_NAME = 'slc-bp-v2.0.8';
 const APP_SHELL = ['./', './index.html', './manifest.json', './slc-logo.png'];
 
 self.addEventListener('install', (event) => {
