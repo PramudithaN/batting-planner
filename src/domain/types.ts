@@ -32,6 +32,16 @@ export const LINES = [
   'Middle stump',
   'Leg stump',
   'Outside leg',
+  'Wide outside leg',
+] as const;
+
+export const DISMISSAL_TYPES = [
+  'LBW',
+  'Bowled',
+  'Caught behind',
+  'Caught',
+  'Caught and bowled',
+  'Stumped',
 ] as const;
 
 export const LENGTHS = [
@@ -267,6 +277,8 @@ export interface BallEvent {
   shotY?: number;
   runs?: string;
   contactOutcome: string;
+  isWicket?: boolean;
+  dismissalType?: string;
   isUndone?: boolean;
   createdAt: string;
 }
@@ -304,6 +316,8 @@ export const ballInputSchema = z.object({
   shotY: z.number().min(0).max(80).optional(),
   runs: z.string().optional(),
   contactOutcome: z.enum(CONTACT_OUTCOMES),
+  isWicket: z.boolean().optional(),
+  dismissalType: z.string().optional(),
 });
 
 export const completionInputSchema = z.object({

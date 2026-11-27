@@ -18,6 +18,7 @@ import {
   BOWLING_STYLES,
   CONTACT_OUTCOMES,
   DEFAULT_COACHES,
+  DISMISSAL_TYPES,
   LENGTHS,
   LINES,
   RUN_OPTIONS,
@@ -79,6 +80,33 @@ const OUTCOME_ACTIVE: Record<string, string> = {
   Left: 'border-sky-600 bg-sky-600 text-white',
 };
 
+const SHOT_DEFAULT_COORDS_RHB: Record<string, [number, number]> = {
+  'Straight drive': [50, 72],
+  'Off drive': [38, 70],
+  'On drive': [62, 70],
+  'Cover drive': [22, 64],
+  'Square drive': [14, 48],
+  'Back-foot punch': [32, 60],
+  'Square cut': [14, 38],
+  'Late cut': [26, 16],
+  Pull: [84, 48],
+  Hook: [80, 26],
+  Flick: [78, 56],
+  'Leg glance': [74, 18],
+  Sweep: [86, 44],
+  'Reverse sweep': [16, 42],
+  'Paddle sweep': [72, 16],
+  'Slog sweep': [84, 62],
+  'Forward defence': [46, 46],
+  'Back-foot defence': [48, 42],
+};
+
+function getDefaultShotCoords(shot: string, stance: 'RHB' | 'LHB'): [number, number] | undefined {
+  const base = SHOT_DEFAULT_COORDS_RHB[shot];
+  if (!base) return undefined;
+  return stance === 'LHB' ? [100 - base[0], base[1]] : base;
+}
+
 export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
   day,
   players,
@@ -117,6 +145,8 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
   const [shotY, setShotY] = useState<number | undefined>(undefined);
   const [runs, setRuns] = useState<string | undefined>(undefined);
   const [contactOutcome, setContactOutcome] = useState<string | undefined>(undefined);
+  const [isWicket, setIsWicket] = useState<boolean>(false);
+  const [dismissalType, setDismissalType] = useState<string | undefined>(undefined);
 
   // Completion modal
   const [showCompleteModal, setShowCompleteModal] = useState(false);
@@ -210,6 +240,8 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
       shotY,
       runs,
       contactOutcome: finalOutcome,
+      isWicket: isWicket || Boolean(dismissalType) || undefined,
+      dismissalType: isWicket || dismissalType ? dismissalType : undefined,
     });
 
     if (!parsed.success) {
@@ -232,14 +264,18 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
       shotY,
       runs,
       contactOutcome: finalOutcome,
+      isWicket: isWicket || Boolean(dismissalType) || undefined,
+      dismissalType: isWicket || dismissalType ? dismissalType : undefined,
       createdAt: new Date().toISOString(),
     };
 
     onLogBall(ball);
 
     const summary = `Ball #${ball.ballNumber} saved: ${finalOutcome}${
-      runs ? ` · ${runs === 'Dot' ? '0 runs' : `${runs} runs`}` : ''
-    }${shotType ? ` · ${shotType}` : ''}`;
+      ball.isWicket ? ` · OUT (${ball.dismissalType ?? 'Wicket'})` : ''
+    }${runs ? ` · ${runs === 'Dot' ? '0 runs' : `${runs} runs`}` : ''}${
+      shotType ? ` · ${shotType}` : ''
+    }`;
     onToast(summary);
 
     setLine(undefined);
@@ -249,6 +285,8 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
     setShotY(undefined);
     setRuns(undefined);
     setContactOutcome(undefined);
+    setIsWicket(false);
+    setDismissalType(undefined);
   };
 
   const handleOutcomeTap = (co: string) => {
@@ -312,9 +350,14 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
     let totalRuns = 0;
     let fours = 0;
     let sixes = 0;
+    let wickets = 0;
     const outcomeCounts: Record<string, number> = {};
+    const dismissalCounts: Record<string, number> = {};
     for (const co of CONTACT_OUTCOMES) {
       outcomeCounts[co] = 0;
+    }
+    for (const dt of DISMISSAL_TYPES) {
+      dismissalCounts[dt] = 0;
     }
     for (const b of playerBalls) {
       const n = Number(b.runs);
@@ -324,6 +367,12 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
       if (b.contactOutcome in outcomeCounts) {
         outcomeCounts[b.contactOutcome]++;
       }
+      if (b.isWicket || b.dismissalType) {
+        wickets++;
+        if (b.dismissalType && b.dismissalType in dismissalCounts) {
+          dismissalCounts[b.dismissalType]++;
+        }
+      }
     }
     const solid = outcomeCounts['Solid'] ?? 0;
     const sr = playerBalls.length > 0 ? ((totalRuns / playerBalls.length) * 100).toFixed(1) : '0.0';
@@ -332,9 +381,11 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
       balls: playerBalls.length,
       fours,
       sixes,
+      wickets,
       strikeRate: sr,
       solidPct: playerBalls.length > 0 ? Math.round((solid / playerBalls.length) * 100) : 0,
       outcomeCounts,
+      dismissalCounts,
     };
   }, [playerBalls]);
 
@@ -770,8 +821,10 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                   {wheelMode === 'mark' ? (
                     <WagonWheelSvg
                       interactive={canScore}
+                      balls={playerBalls}
                       selectedX={shotX}
                       selectedY={shotY}
+                      selectedRuns={runs}
                       stance={batterStance}
                       onChangeStance={setBatterStance}
                       onSelectPoint={(x, y) => {
@@ -839,7 +892,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                       />
                     </div>
 
-                    <div className="grid grid-cols-3 divide-x divide-[var(--border-subtle)] bg-[var(--bg-elevated)] text-center sm:grid-cols-5">
+                    <div className="grid grid-cols-3 divide-x divide-[var(--border-subtle)] bg-[var(--bg-elevated)] text-center sm:grid-cols-6">
                       <div className="py-2">
                         <p className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)] sm:text-[10px]">
                           Runs
@@ -858,6 +911,14 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                       </div>
                       <div className="py-2">
                         <p className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)] sm:text-[10px]">
+                          Outs
+                        </p>
+                        <p className="tabular-nums text-sm font-extrabold text-rose-500">
+                          {batterStats.wickets}
+                        </p>
+                      </div>
+                      <div className="border-t border-[var(--border-subtle)] py-2 sm:border-t-0">
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)] sm:text-[10px]">
                           S. Rate
                         </p>
                         <p className="tabular-nums text-sm font-extrabold text-[var(--text-primary)]">
@@ -872,7 +933,7 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                           {batterStats.fours}/{batterStats.sixes}
                         </p>
                       </div>
-                      <div className="col-span-2 border-t border-[var(--border-subtle)] py-2 sm:col-span-1 sm:border-t-0">
+                      <div className="border-t border-[var(--border-subtle)] py-2 sm:border-t-0">
                         <p className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)] sm:text-[10px]">
                           Solid %
                         </p>
@@ -904,6 +965,29 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                               </span>
                             </p>
                           </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Session Out / Dismissal Summary */}
+                    <div className="flex flex-wrap items-center gap-1.5 border-t border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3 py-1.5 text-[10px]">
+                      <span className="font-bold uppercase tracking-wider text-rose-500">
+                        Outs ({batterStats.wickets}):
+                      </span>
+                      {DISMISSAL_TYPES.map((dt) => {
+                        const cnt = batterStats.dismissalCounts[dt] ?? 0;
+                        const short = dt === 'Caught and bowled' ? 'C & B' : dt;
+                        return (
+                          <span
+                            key={dt}
+                            className={`rounded px-1.5 py-0.5 font-semibold tabular-nums ${
+                              cnt > 0
+                                ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+                                : 'bg-[var(--bg-surface)] text-[var(--text-muted)]'
+                            }`}
+                          >
+                            {short}: {cnt}
+                          </span>
                         );
                       })}
                     </div>
@@ -965,7 +1049,18 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                           key={sh}
                           type="button"
                           disabled={!canScore}
-                          onClick={() => setShotType(shotType === sh ? undefined : sh)}
+                          onClick={() => {
+                            if (shotType === sh) {
+                              setShotType(undefined);
+                            } else {
+                              setShotType(sh);
+                              const coords = getDefaultShotCoords(sh, batterStance);
+                              if (coords) {
+                                setShotX(coords[0]);
+                                setShotY(coords[1]);
+                              }
+                            }
+                          }}
                           className={`touch-target rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
                             shotType === sh
                               ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-white'
@@ -1003,6 +1098,55 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                             }`}
                           >
                             {r}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Wicket / Dismissal Section */}
+                  <div>
+                    <div className="mb-1.5 flex items-center justify-between gap-2">
+                      <label className="ui-label mb-0">
+                        Wicket / How Out {isWicket ? `· ${dismissalType ?? 'Out'}` : '(Optional)'}
+                      </label>
+                      {isWicket && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsWicket(false);
+                            setDismissalType(undefined);
+                          }}
+                          className="ui-link text-rose-500"
+                        >
+                          Clear wicket
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
+                      {DISMISSAL_TYPES.map((dt) => {
+                        const active = isWicket && dismissalType === dt;
+                        return (
+                          <button
+                            key={dt}
+                            type="button"
+                            disabled={!canScore}
+                            onClick={() => {
+                              if (active) {
+                                setIsWicket(false);
+                                setDismissalType(undefined);
+                              } else {
+                                setIsWicket(true);
+                                setDismissalType(dt);
+                              }
+                            }}
+                            className={`rounded-lg border px-2 py-1.5 text-[11px] font-bold transition-colors ${
+                              active
+                                ? 'border-rose-600 bg-rose-600 text-white shadow-xs'
+                                : 'border-[var(--border-subtle)] bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:border-rose-500/60'
+                            }`}
+                          >
+                            {dt === 'Caught and bowled' ? 'C & Bowled' : dt}
                           </button>
                         );
                       })}
@@ -1096,6 +1240,11 @@ export const LiveStationsView: React.FC<LiveStationsViewProps> = ({
                                 {b.shotType && (
                                   <span className="ml-1 text-[10px] text-[var(--text-muted)]">
                                     · {b.shotType}
+                                  </span>
+                                )}
+                                {b.isWicket && (
+                                  <span className="ml-1 rounded bg-rose-600 px-1.5 py-0.5 text-[9px] font-extrabold text-white">
+                                    W · {b.dismissalType ?? 'Out'}
                                   </span>
                                 )}
                                 {isBoundary && (

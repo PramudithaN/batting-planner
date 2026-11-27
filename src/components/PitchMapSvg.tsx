@@ -18,10 +18,10 @@ interface PitchMapSvgProps {
 }
 
 const MAX_METERS = 11.5;
-const PITCH_W = 3.05; // Standard cricket pitch width in meters
-const LINE_HALF_SPAN = 1.95; // Covers Wide outside off -> Wide outside leg
-const GROUND_W = 14;
-const GROUND_L = 16;
+const PITCH_W = 3.45; // Visual pitch width in meters for comfortable tapping
+const LINE_HALF_SPAN = 2.35; // Covers Wide outside off -> Wide outside leg
+const GROUND_W = 24;
+const GROUND_L = 18;
 
 function metersToZ(m: number): number {
   return -MAX_METERS / 2 + Math.max(0, Math.min(MAX_METERS, m));
@@ -60,7 +60,6 @@ const ZONE_PALETTE: Record<string, string> = {
 
 function createPitchGroundTexture(
   zones: readonly PitchLengthZone[],
-  isLhb: boolean,
   selectedLength?: string
 ): THREE.CanvasTexture {
   const w = 1024;
@@ -137,33 +136,32 @@ function createPitchGroundTexture(
     // Clean Broadcast Side Labels on Turf
     const midY = (y1 + y2) / 2;
     ctx.save();
-    ctx.font = '700 22px Inter, system-ui, sans-serif';
+    ctx.font = '700 18px Inter, system-ui, sans-serif';
     ctx.textBaseline = 'middle';
     ctx.shadowColor = 'rgba(0,0,0,0.75)';
     ctx.shadowBlur = 4;
 
-    ctx.fillStyle = isSelected ? '#FFFFFF' : 'rgba(255,255,255,0.92)';
+    ctx.fillStyle = isSelected ? '#FFFFFF' : 'rgba(255,255,255,0.94)';
     ctx.textAlign = 'right';
-    ctx.fillText(z.label.toUpperCase(), pitchLeft - 18, midY);
+    ctx.fillText(z.label.toUpperCase(), pitchLeft - 12, midY);
 
-    ctx.font = '600 19px Inter, system-ui, sans-serif';
-    ctx.fillStyle = 'rgba(226, 232, 240, 0.85)';
+    ctx.font = '600 17px Inter, system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(226, 232, 240, 0.88)';
     ctx.textAlign = 'left';
-    ctx.fillText(z.rangeText, pitchRight + 18, midY);
+    ctx.fillText(z.rangeText, pitchRight + 12, midY);
     ctx.restore();
   }
 
-  // 4. Stump-to-Stump Hawk-Eye Blue Corridor (Middle Stump)
-  // For RHB: Middle stump is slightly right of center? No, stumps are centered on 0;
-  // Middle stump corridor is centered on x=0, width ~0.26m
-  const orderedLines = isLhb ? [...LINES].reverse() : [...LINES];
-  const midIdx = orderedLines.indexOf('Middle stump');
-  const laneW = (LINE_HALF_SPAN * 2) / orderedLines.length;
-  const midLaneCenter = -LINE_HALF_SPAN + (midIdx + 0.5) * laneW;
-  const corrLeft = toPxX(midLaneCenter - laneW * 0.45);
-  const corrRight = toPxX(midLaneCenter + laneW * 0.45);
-  ctx.fillStyle = 'rgba(37, 99, 235, 0.26)';
-  ctx.fillRect(corrLeft, toPxY(metersToZ(0)), corrRight - corrLeft, toPxY(metersToZ(MAX_METERS)) - toPxY(metersToZ(0)));
+  // 4. Stump-to-Stump Hawk-Eye Blue Corridor (Centered directly on the 3 stumps at x = 0)
+  const corrLeft = toPxX(-0.19);
+  const corrRight = toPxX(0.19);
+  ctx.fillStyle = 'rgba(37, 99, 235, 0.30)';
+  ctx.fillRect(
+    corrLeft,
+    toPxY(metersToZ(0)),
+    corrRight - corrLeft,
+    toPxY(metersToZ(MAX_METERS)) - toPxY(metersToZ(0))
+  );
 
   // 5. Crisp White Crease Markings (Bowling, Popping, Return Creases)
   const bowlingY = toPxY(metersToZ(0));
@@ -242,9 +240,9 @@ export const PitchMapSvg: React.FC<PitchMapSvgProps> = ({
     const scene = new THREE.Scene();
     scene.background = new THREE.Color('#0B1F13');
 
-    const camera = new THREE.PerspectiveCamera(34, width / height, 0.5, 80);
-    camera.position.set(0, 11.4, 10.2);
-    camera.lookAt(0, 0, -0.25);
+    const camera = new THREE.PerspectiveCamera(40, width / height, 0.5, 80);
+    camera.position.set(0, 10.6, 9.8);
+    camera.lookAt(0, 0, -0.3);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -265,7 +263,7 @@ export const PitchMapSvg: React.FC<PitchMapSvgProps> = ({
 
     // Ground + Pitch Plane
     const groundGeo = new THREE.PlaneGeometry(GROUND_W, GROUND_L);
-    const groundTex = createPitchGroundTexture(PACE_LENGTH_ZONES, false);
+    const groundTex = createPitchGroundTexture(PACE_LENGTH_ZONES);
     const groundMat = new THREE.MeshStandardMaterial({
       map: groundTex,
       roughness: 0.86,
@@ -366,15 +364,15 @@ export const PitchMapSvg: React.FC<PitchMapSvgProps> = ({
     };
   }, []);
 
-  // Update Pitch Texture when Pace/Spin, RHB/LHB, or selectedLength changes
+  // Update Pitch Texture when Pace/Spin or selectedLength changes
   useEffect(() => {
     const refs = sceneRefs.current;
     if (!refs) return;
     const oldTex = refs.groundMat.map;
-    refs.groundMat.map = createPitchGroundTexture(zones, isLhb, selectedLength);
+    refs.groundMat.map = createPitchGroundTexture(zones, selectedLength);
     refs.groundMat.needsUpdate = true;
     oldTex?.dispose();
-  }, [zones, isLhb, selectedLength]);
+  }, [zones, selectedLength]);
 
   // Render Plotted 3D Cricket Balls for Historical Deliveries
   useEffect(() => {
@@ -409,7 +407,13 @@ export const PitchMapSvg: React.FC<PitchMapSvgProps> = ({
 
       const isBoundary = b.runs === '4' || b.runs === '6';
       const isRun = b.runs === '1' || b.runs === '2' || b.runs === '3';
-      const color = isBoundary ? '#FACC15' : isRun ? '#38BDF8' : '#DC2626';
+      const color = b.isWicket
+        ? '#FFFFFF'
+        : isBoundary
+          ? '#FACC15'
+          : isRun
+            ? '#38BDF8'
+            : '#DC2626';
 
       const ballGeo = new THREE.SphereGeometry(0.11, 14, 14);
       const ballMat = new THREE.MeshStandardMaterial({
@@ -516,6 +520,10 @@ export const PitchMapSvg: React.FC<PitchMapSvgProps> = ({
             <span className="inline-flex items-center gap-1">
               <span className="h-2.5 w-2.5 rounded-full bg-[#FACC15] ring-1 ring-white/40" />
               Boundaries
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#FFFFFF] ring-1 ring-white/60" />
+              Wickets
             </span>
           </div>
           <span className="text-[9px] uppercase tracking-wider text-slate-300">

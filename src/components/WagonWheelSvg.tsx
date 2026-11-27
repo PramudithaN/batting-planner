@@ -8,6 +8,7 @@ interface WagonWheelSvgProps {
   interactive?: boolean;
   selectedX?: number;
   selectedY?: number;
+  selectedRuns?: string;
   onSelectPoint?: (x: number, y: number) => void;
   balls?: BallEvent[];
   stance?: 'RHB' | 'LHB';
@@ -141,6 +142,7 @@ export const WagonWheelSvg: React.FC<WagonWheelSvgProps> = ({
   interactive = false,
   selectedX,
   selectedY,
+  selectedRuns,
   onSelectPoint,
   balls = [],
   stance: controlledStance,
@@ -561,28 +563,36 @@ export const WagonWheelSvg: React.FC<WagonWheelSvgProps> = ({
 
     const start = toWorld(50, 34);
     const end = toWorld(selectedX, selectedY);
+    const isSixPreview = selectedRuns === '6';
 
-    // Curved Trajectory Preview + ground shadow
-    const shadowGeo = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(start.x, 0.08, start.z),
-      new THREE.Vector3(end.x, 0.08, end.z),
-    ]);
-    const shadowMat = new THREE.LineBasicMaterial({
-      color: '#000000',
-      transparent: true,
-      opacity: 0.3,
-    });
-    markerGroup.add(new THREE.Line(shadowGeo, shadowMat));
+    let previewCurve: THREE.Curve<THREE.Vector3>;
+    if (isSixPreview) {
+      const shadowGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(start.x, 0.08, start.z),
+        new THREE.Vector3(end.x, 0.08, end.z),
+      ]);
+      const shadowMat = new THREE.LineBasicMaterial({
+        color: '#000000',
+        transparent: true,
+        opacity: 0.3,
+      });
+      markerGroup.add(new THREE.Line(shadowGeo, shadowMat));
 
-    const midX = (start.x + end.x) / 2;
-    const midZ = (start.z + end.z) / 2;
-    const dist = Math.hypot(end.x - start.x, end.z - start.z);
-    const previewCurve = new THREE.QuadraticBezierCurve3(
-      new THREE.Vector3(start.x, 0.3, start.z),
-      new THREE.Vector3(midX, Math.max(4.5, dist * 0.35), midZ),
-      new THREE.Vector3(end.x, 0.2, end.z)
-    );
-    const tubeGeo = new THREE.TubeGeometry(previewCurve, 24, 0.11, 8, false);
+      const midX = (start.x + end.x) / 2;
+      const midZ = (start.z + end.z) / 2;
+      const dist = Math.hypot(end.x - start.x, end.z - start.z);
+      previewCurve = new THREE.QuadraticBezierCurve3(
+        new THREE.Vector3(start.x, 0.3, start.z),
+        new THREE.Vector3(midX, Math.max(12, dist * 0.72), midZ),
+        new THREE.Vector3(end.x, 0.2, end.z)
+      );
+    } else {
+      previewCurve = new THREE.LineCurve3(
+        new THREE.Vector3(start.x, 0.14, start.z),
+        new THREE.Vector3(end.x, 0.14, end.z)
+      );
+    }
+    const tubeGeo = new THREE.TubeGeometry(previewCurve, isSixPreview ? 24 : 4, 0.11, 8, false);
     const tubeMat = new THREE.MeshStandardMaterial({
       color: '#FACC15',
       emissive: '#FACC15',
@@ -611,7 +621,7 @@ export const WagonWheelSvg: React.FC<WagonWheelSvgProps> = ({
     const pinMesh = new THREE.Mesh(pinGeo, pinMat);
     pinMesh.position.set(end.x, 0.4, end.z);
     markerGroup.add(pinMesh);
-  }, [interactive, selectedX, selectedY]);
+  }, [interactive, selectedX, selectedY, selectedRuns]);
 
   return (
     <div className="space-y-2.5">
