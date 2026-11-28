@@ -1,5 +1,14 @@
 # Sri Lanka Cricket: Batting Practice Planner
 
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Three.js](https://img.shields.io/badge/Three.js-000000?style=for-the-badge&logo=threedotjs&logoColor=white)
+![Bun](https://img.shields.io/badge/Bun-000000?style=for-the-badge&logo=bun&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
+[![GitHub Pages](https://img.shields.io/github/actions/workflow/status/PramudithaN/batting-planner/deploy-pages.yml?branch=main&style=for-the-badge&logo=github&label=GitHub%20Pages)](https://github.com/PramudithaN/batting-planner/actions/workflows/deploy-pages.yml)
+
 A mobile-first PWA for Sri Lanka Cricket batting practice planning, live ball-by-ball scoring, 3D wagon wheels, and Excel reports.
 
 **Live Deployment (GitHub Pages):** https://pramudithan.github.io/batting-planner/
@@ -45,7 +54,7 @@ bun run dev
 
 ### Build & GitHub Pages Deployment
 
-The production build outputs directly to the `docs/` folder for branch-based GitHub Pages hosting (`main` branch -> `/docs` folder, without GitHub Actions):
+The production build outputs to `dist/` (gitignored) and is deployed automatically to GitHub Pages via `.github/workflows/deploy-pages.yml` using Bun on every push to `main`:
 
 ```bash
 bun run typecheck

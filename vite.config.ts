@@ -10,13 +10,13 @@ function stampSwVersionPlugin(version: string): Plugin {
   return {
     name: 'stamp-sw-version',
     closeBundle() {
-      const swPath = resolve('docs', 'sw.js');
+      const swPath = resolve('dist', 'sw.js');
       try {
         const content = readFileSync(swPath, 'utf-8');
         const updated = content.replace(/slc-bp-v[^'"]+/, `slc-bp-v${version}`);
         writeFileSync(swPath, updated, 'utf-8');
       } catch {
-        // Ignore if docs/sw.js is not present
+        // Ignore if dist/sw.js is not present
       }
     },
   };
@@ -29,7 +29,7 @@ export default defineConfig({
   },
   plugins: [react(), tailwindcss(), stampSwVersionPlugin(pkg.version)],
   build: {
-    outDir: 'docs',
+    outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
       output: {
