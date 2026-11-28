@@ -3,7 +3,7 @@ import { CONTACT_OUTCOMES, DISMISSAL_TYPES, type Player } from '../../domain/typ
 import { SlcLionCrest } from '../../components/SlcLionCrest';
 import { PlayerAvatar } from '../../components/ui/PlayerAvatar';
 
-export interface LiveBatterStats {
+interface LiveBatterStats {
   totalRuns: number;
   balls: number;
   fours: number;

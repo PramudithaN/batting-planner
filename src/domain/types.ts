@@ -188,7 +188,7 @@ export const WAGON_RUN_COLORS: Record<string, string> = {
   Unrecorded: '#CBD5E1',
 };
 
-export type UserRole = 'master' | 'coach' | 'viewer';
+type UserRole = 'master' | 'coach' | 'viewer';
 
 export interface CoachAccount {
   id: string;

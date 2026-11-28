@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
 
-export interface UiSelectOption {
+interface UiSelectOption {
   value: string;
   label: string;
 }

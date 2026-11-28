@@ -26,7 +26,7 @@ export function getTodayDateString(): string {
   return `${y}-${m}-${d}`;
 }
 
-export function createEmptyDay(practiceDate: string): PracticeDay {
+function createEmptyDay(practiceDate: string): PracticeDay {
   return {
     practiceDate,
     sessions: [

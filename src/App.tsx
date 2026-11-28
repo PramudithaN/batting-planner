@@ -64,7 +64,7 @@ import {
 
 type Tab = 'setup' | 'live' | 'reports';
 
-export function App() {
+function App() {
   const [coaches] = useState<CoachAccount[]>(() => loadCoaches());
   const [currentCoach, setCurrentCoach] = useState<CoachAccount | null>(() => {
     const id = loadActiveCoachId();

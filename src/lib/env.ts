@@ -10,7 +10,7 @@ const parsed = envSchema.safeParse({
   VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY ?? '',
 });
 
-export const env = parsed.success
+const env = parsed.success
   ? {
       supabaseUrl: parsed.data.VITE_SUPABASE_URL || '',
       supabaseAnonKey: parsed.data.VITE_SUPABASE_ANON_KEY || '',
