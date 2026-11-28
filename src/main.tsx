@@ -6,18 +6,30 @@ import './index.css';
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     if (import.meta.env.PROD) {
-      let hadController = Boolean(navigator.serviceWorker.controller);
+      let refreshing = false;
+      let userRequestedUpdate = false;
+      let activeRegistration: ServiceWorkerRegistration | null = null;
 
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (hadController) {
-          window.dispatchEvent(new CustomEvent('slc-sw-update'));
+        if (!userRequestedUpdate || refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      });
+
+      window.addEventListener('slc-sw-apply-update', () => {
+        if (activeRegistration?.waiting) {
+          userRequestedUpdate = true;
+          activeRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        } else {
+          window.location.reload();
         }
-        hadController = true;
       });
 
       navigator.serviceWorker
         .register(`${import.meta.env.BASE_URL}sw.js`)
         .then((reg) => {
+          activeRegistration = reg;
+
           if (reg.waiting && navigator.serviceWorker.controller) {
             window.dispatchEvent(new CustomEvent('slc-sw-update'));
           }

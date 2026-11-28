@@ -556,7 +556,7 @@ function App() {
               type="button"
               onClick={() => {
                 hapticTap();
-                window.location.reload();
+                window.dispatchEvent(new CustomEvent('slc-sw-apply-update'));
               }}
               className="ui-btn-primary min-h-[32px] shrink-0 px-3 py-1 text-xs"
             >
